@@ -10,6 +10,7 @@ import Placeholder from './layout/Placeholder'
 import BuscarPage from './jogadores/BuscarPage'
 import PerfilPage from './perfil/PerfilPage'
 import EditarPerfilPage from './perfil/EditarPerfilPage'
+import RankingPage from './ranking/RankingPage'
 
 function SomenteAdmin() {
   const { perfil, carregando } = useAuth()
@@ -32,7 +33,7 @@ export default function App() {
           <Route element={<RotaProtegida />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/ranking" replace />} />
-              <Route path="/ranking" element={<Placeholder titulo="Ranking" />} />
+              <Route path="/ranking" element={<RankingPage />} />
               <Route path="/jogadores" element={<BuscarPage />} />
               <Route path="/jogadores/:id" element={<PerfilPage />} />
               <Route path="/perfil" element={<EditarPerfilPage />} />
