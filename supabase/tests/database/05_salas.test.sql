@@ -83,7 +83,9 @@ select is((select count(*)::int from salas_lista where data_hora < now() - inter
 select is((select count(*)::int from salas_lista where data_hora between now() - interval '3 days' and now()), 1,
   'sala de 2 dias atrás na lista');
 
--- Partida com sala_id
+-- Partida com sala_id (a sala precisa estar confirmada com os jogadores da partida)
+select tests.logar_como(pg_temp.id('B'));
+select entrar_sala(pg_temp.id('s'), 2::smallint);
 select tests.logar_como(pg_temp.id('A'));
 select registrar_partida('simples', hoje(), array[pg_temp.id('A')], array[pg_temp.id('B')],
   '[{"l1":6,"l2":4},{"l1":6,"l2":2}]', pg_temp.id('s'));
