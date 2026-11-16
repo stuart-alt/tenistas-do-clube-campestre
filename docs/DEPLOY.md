@@ -87,7 +87,8 @@ O e-mail padrão do Supabase tem limite muito baixo; usamos uma conta Gmail do c
 update profiles set is_admin = true where email = 'seu-email@exemplo.com';
 ```
 
-3. Feche e abra o app: o menu de administração aparece. Os demais administradores podem ser promovidos por você dentro do app.
+3. Feche e abra o app: o menu de administração aparece.
+4. Para outros administradores: peça que se cadastrem no app e repita o SQL acima com o e-mail de cada um (`update profiles set is_admin = true where email = '…';`). Não há como promover administradores dentro do app.
 
 ## 7. Distribuição aos jogadores
 
@@ -103,6 +104,7 @@ Imprima `docs/qrcode.png` (aponta para o endereço do app) e cole no clube, ou e
 npm install
 npm run db:start        # Supabase local (portas 553xx), requer Docker
 cp .env.example .env.local   # ajuste as chaves mostradas pelo db:start
+                             # no Windows (PowerShell): Copy-Item .env.example .env.local
 npm run dev
 npm test                # testes do front
 npm run db:test         # testes do banco (pgTAP)
