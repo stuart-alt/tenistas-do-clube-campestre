@@ -13,6 +13,11 @@ import EditarPerfilPage from './perfil/EditarPerfilPage'
 import RankingPage from './ranking/RankingPage'
 import PartidasPage from './partidas/PartidasPage'
 import LancarPartidaPage from './partidas/LancarPartidaPage'
+import SalasPage from './salas/SalasPage'
+import NovaSalaPage from './salas/NovaSalaPage'
+import SalaPage from './salas/SalaPage'
+import NotificacoesPage from './notificacoes/NotificacoesPage'
+import AvisosPage from './avisos/AvisosPage'
 
 function SomenteAdmin() {
   const { perfil, carregando } = useAuth()
@@ -39,13 +44,13 @@ export default function App() {
               <Route path="/jogadores" element={<BuscarPage />} />
               <Route path="/jogadores/:id" element={<PerfilPage />} />
               <Route path="/perfil" element={<EditarPerfilPage />} />
-              <Route path="/salas" element={<Placeholder titulo="Salas" />} />
-              <Route path="/salas/nova" element={<Placeholder titulo="Nova sala" />} />
-              <Route path="/salas/:id" element={<Placeholder titulo="Sala" />} />
+              <Route path="/salas" element={<SalasPage />} />
+              <Route path="/salas/nova" element={<NovaSalaPage />} />
+              <Route path="/salas/:id" element={<SalaPage />} />
               <Route path="/partidas" element={<PartidasPage />} />
               <Route path="/partidas/nova" element={<LancarPartidaPage />} />
-              <Route path="/notificacoes" element={<Placeholder titulo="Notificações" />} />
-              <Route path="/avisos" element={<Placeholder titulo="Avisos" />} />
+              <Route path="/notificacoes" element={<NotificacoesPage />} />
+              <Route path="/avisos" element={<AvisosPage />} />
               <Route element={<SomenteAdmin />}>
                 <Route path="/admin" element={<Placeholder titulo="Administração" />} />
               </Route>

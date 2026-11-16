@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import InstalarBanner from './InstalarBanner'
+import Sininho from '../notificacoes/Sininho'
 
 const ABAS = [
   { para: '/ranking', rotulo: 'Ranking' },
@@ -21,7 +22,7 @@ export default function Layout() {
             Admin
           </Link>
         )}
-        <div id="slot-sino" />
+        <Sininho />
         <Link to="/perfil" aria-label="Meu perfil">
           {perfil?.foto_url ? (
             <img src={perfil.foto_url} alt="" className="h-8 w-8 rounded-full object-cover" />
