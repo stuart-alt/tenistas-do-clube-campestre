@@ -6,7 +6,7 @@ import CadastroPage from './auth/CadastroPage'
 import EsqueciSenhaPage from './auth/EsqueciSenhaPage'
 import RedefinirSenhaPage from './auth/RedefinirSenhaPage'
 import Layout from './layout/Layout'
-import Placeholder from './layout/Placeholder'
+import AdminPage from './admin/AdminPage'
 import BuscarPage from './jogadores/BuscarPage'
 import PerfilPage from './perfil/PerfilPage'
 import EditarPerfilPage from './perfil/EditarPerfilPage'
@@ -52,7 +52,7 @@ export default function App() {
               <Route path="/notificacoes" element={<NotificacoesPage />} />
               <Route path="/avisos" element={<AvisosPage />} />
               <Route element={<SomenteAdmin />}>
-                <Route path="/admin" element={<Placeholder titulo="Administração" />} />
+                <Route path="/admin" element={<AdminPage />} />
               </Route>
             </Route>
           </Route>
