@@ -20,7 +20,18 @@ const MENSAGENS: Record<string, string> = {
   VAGA_OCUPADA: 'Essa vaga já foi ocupada.',
   'Invalid login credentials': 'E-mail ou senha incorretos.',
   'User already registered': 'Este e-mail já está cadastrado.',
+  'Auth session missing!': 'Link expirado ou já usado. Peça um novo.',
+  'New password should be different from the old password.': 'A nova senha precisa ser diferente da anterior.',
+  'Email not confirmed': 'E-mail ainda não confirmado.',
 }
+
+const AGUARDE = 'Aguarde um minuto antes de pedir outro e-mail.'
+
+// Mensagens do Auth que trazem números ou variam no texto
+const PREFIXOS: [string, string][] = [
+  ['For security purposes, you can only request this after', AGUARDE],
+  ['Password should be at least', 'A senha precisa ter pelo menos 6 caracteres.'],
+]
 
 export function traduzirErro(e: unknown): string {
   const msg =
@@ -29,5 +40,7 @@ export function traduzirErro(e: unknown): string {
       : typeof e === 'string'
         ? e
         : ''
-  return MENSAGENS[msg] ?? GENERICO
+  if (MENSAGENS[msg]) return MENSAGENS[msg]
+  if (/email rate limit exceeded/i.test(msg)) return AGUARDE
+  return PREFIXOS.find(([p]) => msg.startsWith(p))?.[1] ?? GENERICO
 }

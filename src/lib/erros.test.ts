@@ -28,3 +28,18 @@ test('erro desconhecido vira mensagem genérica', () => {
   expect(traduzirErro(new Error('xyz'))).toBe('Algo deu errado. Tente novamente.')
   expect(traduzirErro(null)).toBe('Algo deu errado. Tente novamente.')
 })
+
+test('traduz falhas de redefinição de senha', () => {
+  expect(traduzirErro({ message: 'Auth session missing!' })).toBe('Link expirado ou já usado. Peça um novo.')
+  expect(traduzirErro({ message: 'New password should be different from the old password.' })).toBe(
+    'A nova senha precisa ser diferente da anterior.',
+  )
+  expect(
+    traduzirErro({ message: 'For security purposes, you can only request this after 42 seconds.' }),
+  ).toBe('Aguarde um minuto antes de pedir outro e-mail.')
+  expect(traduzirErro({ message: 'Email rate limit exceeded' })).toBe('Aguarde um minuto antes de pedir outro e-mail.')
+  expect(traduzirErro({ message: 'Email not confirmed' })).toBe('E-mail ainda não confirmado.')
+  expect(traduzirErro({ message: 'Password should be at least 6 characters.' })).toBe(
+    'A senha precisa ter pelo menos 6 caracteres.',
+  )
+})
