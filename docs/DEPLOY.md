@@ -14,8 +14,10 @@ Nunca compartilhe nem salve em arquivos do projeto: senha do banco, senha de app
 ```
 npx supabase login
 npx supabase link --project-ref <ref>
-npx supabase db push
+npx supabase db push --remote
 ```
+
+**Atenção ao `--remote`:** nesta versão do Supabase CLI, sem ele o comando age no banco **local** do computador, não na nuvem (a primeira linha da saída mostra o alvo: `Target: project tenistas-do-clube-campestre ... production`). Ele pede confirmação antes de aplicar. Para conferir o que já está na nuvem: `npx supabase migration list --remote` (a coluna `remote` deve estar preenchida em todas as linhas).
 
 O `db push` cria as tabelas, regras de segurança, funções e o bucket de fotos `fotos` (já vem nas migrations, não precisa criar à mão). O arquivo `seed.sql` é só para testes locais e **não** vai para produção.
 
@@ -23,7 +25,7 @@ O `db push` cria as tabelas, regras de segurança, funções e o bucket de fotos
 
 As migrations ativam a extensão `pg_cron` e agendam, a cada hora, o job `auto-confirmar` (confirma automaticamente partidas que ninguém contestou).
 
-- Se o `db push` reclamar de `pg_cron`: no painel, vá em **Database → Extensions**, procure `pg_cron`, ative e rode `npx supabase db push` de novo.
+- Se o `db push` reclamar de `pg_cron`: no painel, vá em **Database → Extensions**, procure `pg_cron`, ative e rode `npx supabase db push --remote` de novo.
 - Para conferir: no painel, abra **SQL Editor** e rode:
 
 ```sql
