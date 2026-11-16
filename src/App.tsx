@@ -7,6 +7,9 @@ import EsqueciSenhaPage from './auth/EsqueciSenhaPage'
 import RedefinirSenhaPage from './auth/RedefinirSenhaPage'
 import Layout from './layout/Layout'
 import Placeholder from './layout/Placeholder'
+import BuscarPage from './jogadores/BuscarPage'
+import PerfilPage from './perfil/PerfilPage'
+import EditarPerfilPage from './perfil/EditarPerfilPage'
 
 function SomenteAdmin() {
   const { perfil, carregando } = useAuth()
@@ -30,9 +33,9 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/ranking" replace />} />
               <Route path="/ranking" element={<Placeholder titulo="Ranking" />} />
-              <Route path="/jogadores" element={<Placeholder titulo="Jogadores" />} />
-              <Route path="/jogadores/:id" element={<Placeholder titulo="Jogador" />} />
-              <Route path="/perfil" element={<Placeholder titulo="Meu perfil" />} />
+              <Route path="/jogadores" element={<BuscarPage />} />
+              <Route path="/jogadores/:id" element={<PerfilPage />} />
+              <Route path="/perfil" element={<EditarPerfilPage />} />
               <Route path="/salas" element={<Placeholder titulo="Salas" />} />
               <Route path="/salas/nova" element={<Placeholder titulo="Nova sala" />} />
               <Route path="/salas/:id" element={<Placeholder titulo="Sala" />} />
