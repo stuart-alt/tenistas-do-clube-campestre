@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { traduzirErro } from '../lib/erros'
+import { ERRO_CELULAR, normalizarTelefone } from '../lib/whatsapp'
 import { Campo, CLASSE_BOTAO, CLASSE_INPUT } from '../auth/Campo'
 import GradeDisponibilidade from './GradeDisponibilidade'
 import Estrelas from './Estrelas'
@@ -43,8 +44,13 @@ export default function EditarPerfilPage() {
   async function salvar(e: FormEvent) {
     e.preventDefault()
     setMsg(null)
+    const telefone = normalizarTelefone(f.telefone)
+    if (!telefone) {
+      setMsg({ ok: false, texto: ERRO_CELULAR })
+      return
+    }
     setSalvando(true)
-    const { error } = await supabase.from('profiles').update(f).eq('id', perfil!.id)
+    const { error } = await supabase.from('profiles').update({ ...f, telefone }).eq('id', perfil!.id)
     setSalvando(false)
     if (error) {
       setMsg({ ok: false, texto: traduzirErro(error) })

@@ -158,12 +158,14 @@ export default function PartidasPage() {
           </section>
         </>
       )}
+      {!perfil?.is_admin && (
       <Link
         to="/partidas/nova"
         className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 rounded-full bg-green-800 px-5 py-3 font-semibold text-white shadow-lg"
       >
         Lançar resultado
       </Link>
+      )}
     </div>
   )
 }

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../auth/AuthProvider'
 import { formatarDiaHora, totalVagas, type SalaLista } from './tipos'
 
 export default function SalasPage() {
+  const { perfil } = useAuth()
   const { data, isLoading, error } = useQuery({
     queryKey: ['salas'],
     queryFn: async () => {
@@ -23,9 +25,11 @@ export default function SalasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Salas</h2>
-        <Link to="/salas/nova" className="rounded bg-green-800 px-3 py-2 text-sm font-bold text-white">
-          Criar sala
-        </Link>
+        {!perfil?.is_admin && (
+          <Link to="/salas/nova" className="rounded bg-green-800 px-3 py-2 text-sm font-bold text-white">
+            Criar sala
+          </Link>
+        )}
       </div>
       {isLoading && <p>Carregando...</p>}
       {error && <p role="alert">Não foi possível carregar as salas.</p>}

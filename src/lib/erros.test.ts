@@ -1,6 +1,7 @@
 import { traduzirErro } from './erros'
 
 const CODIGOS = [
+  'ADMIN_NAO_JOGA',
   'DATA_INVALIDA', 'JA_NA_SALA', 'JOGADORES_INVALIDOS', 'JOGADOR_NAO_ENCONTRADO',
   'NAO_PARTICIPANTE', 'PARTIDA_NAO_ENCONTRADA', 'PLACAR_EMPATADO', 'POSICAO_INVALIDA',
   'REGRA_INVALIDA', 'SALA_FECHADA', 'SALA_NAO_ENCONTRADA', 'SEM_PERMISSAO', 'SETS_INVALIDOS',
@@ -42,4 +43,11 @@ test('traduz falhas de redefinição de senha', () => {
   expect(traduzirErro({ message: 'Password should be at least 6 characters.' })).toBe(
     'A senha precisa ter pelo menos 6 caracteres.',
   )
+})
+
+test('traduz violação do check de celular', () => {
+  expect(
+    traduzirErro({ message: 'new row for relation "profiles" violates check constraint "profiles_telefone_celular_br"' }),
+  ).toBe('Informe um celular com DDD, ex.: (11) 98765-4321')
+  expect(traduzirErro({ message: 'ADMIN_NAO_JOGA' })).toBe('Contas de administrador não participam de jogos.')
 })

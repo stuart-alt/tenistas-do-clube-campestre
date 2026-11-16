@@ -1,3 +1,5 @@
+import type { FocusEvent } from 'react'
+
 export type SetPlacar = { l1: number; l2: number; stb: boolean }
 
 const CLASSE_NUM = 'w-16 rounded border border-gray-300 px-2 py-1 text-center'
@@ -11,7 +13,8 @@ export default function PlacarInput({
 }) {
   const alterar = (i: number, parte: Partial<SetPlacar>) =>
     onChange(valor.map((s, j) => (j === i ? { ...s, ...parte } : s)))
-  const num = (v: string) => Math.max(0, Math.min(99, Math.trunc(Number(v)) || 0))
+  const num = (v: string) => Math.min(99, Number(v.replace(/\D/g, '')) || 0)
+  const aoFocar = (e: FocusEvent<HTMLInputElement>) => e.target.select()
 
   return (
     <div className="space-y-3">
@@ -22,10 +25,10 @@ export default function PlacarInput({
             <div className="flex items-center gap-2">
               <span className="w-12 text-sm font-medium">Set {i + 1}</span>
               <input
-                type="number"
-                min={0}
-                max={99}
+                type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
+                onFocus={aoFocar}
                 aria-label={`Set ${i + 1} - games do lado 1`}
                 className={CLASSE_NUM}
                 value={s.l1}
@@ -33,10 +36,10 @@ export default function PlacarInput({
               />
               <span aria-hidden>x</span>
               <input
-                type="number"
-                min={0}
-                max={99}
+                type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
+                onFocus={aoFocar}
                 aria-label={`Set ${i + 1} - games do lado 2`}
                 className={CLASSE_NUM}
                 value={s.l2}

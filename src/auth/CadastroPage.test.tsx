@@ -10,12 +10,12 @@ vi.mock('../lib/supabase', () => ({
 
 const signUp = vi.mocked(supabase.auth.signUp)
 
-async function preencher(senha: string) {
+async function preencher(senha: string, telefone = '(11) 98765-4321') {
   const u = userEvent.setup()
   await u.type(screen.getByLabelText('Nome'), 'Maria Silva')
   await u.type(screen.getByLabelText('Data de nascimento'), '1990-05-20')
   await u.type(screen.getByLabelText('E-mail'), 'maria@exemplo.com')
-  await u.type(screen.getByLabelText('Telefone (WhatsApp)'), '(11) 98765-4321')
+  await u.type(screen.getByLabelText('Telefone (WhatsApp)'), telefone)
   await u.selectOptions(screen.getByLabelText('Gênero'), 'feminino')
   await u.selectOptions(screen.getByLabelText('Categoria'), 'B')
   await u.type(screen.getByLabelText('Senha'), senha)
@@ -41,7 +41,7 @@ test('envia os dados do cadastro como metadata', async () => {
       data: {
         nome: 'Maria Silva',
         data_nascimento: '1990-05-20',
-        telefone: '(11) 98765-4321',
+        telefone: '11987654321',
         genero: 'feminino',
         categoria: 'B',
       },
@@ -58,4 +58,10 @@ test('senha curta mostra erro sem chamar o Supabase', async () => {
 test('sem sessão após o cadastro, mostra mensagem em vez de navegar', async () => {
   await preencher('segredo123')
   expect(await screen.findByText('Cadastro feito. Entre com seu e-mail e senha.')).toBeInTheDocument()
+})
+
+test('telefone inválido mostra erro e não chama o Supabase', async () => {
+  await preencher('segredo123', '(11) 3333-4444')
+  expect(signUp).not.toHaveBeenCalled()
+  expect(screen.getByRole('alert')).toHaveTextContent('Informe um celular com DDD, ex.: (11) 98765-4321')
 })

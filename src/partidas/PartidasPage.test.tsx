@@ -38,7 +38,8 @@ vi.mock('../lib/supabase', () => ({
     }),
   },
 }))
-vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: { id: 'ana' } }) }))
+let perfilAtual: Record<string, unknown> = { id: 'ana' }
+vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: perfilAtual }) }))
 
 test('separa pendentes por quem precisa confirmar', async () => {
   render(
@@ -71,4 +72,28 @@ test('filtra no servidor as partidas do usuário', async () => {
   await screen.findByText('Aguardando sua confirmação')
   expect(consulta.select).toContain('eu:partida_jogadores!inner(jogador_id)')
   expect(consulta.eq).toContainEqual(['eu.jogador_id', 'ana'])
+})
+
+function montar() {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <PartidasPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+test('jogador vê o botão Lançar resultado; administrador não', async () => {
+  perfilAtual = { id: 'ana' }
+  montar()
+  expect(await screen.findByRole('link', { name: 'Lançar resultado' })).toBeInTheDocument()
+})
+
+test('administrador não vê o botão Lançar resultado', async () => {
+  perfilAtual = { id: 'adm', is_admin: true }
+  montar()
+  await screen.findByText('Aguardando sua confirmação')
+  expect(screen.queryByRole('link', { name: 'Lançar resultado' })).toBeNull()
+  perfilAtual = { id: 'ana' }
 })

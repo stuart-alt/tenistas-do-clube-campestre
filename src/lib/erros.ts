@@ -1,6 +1,7 @@
 const GENERICO = 'Algo deu errado. Tente novamente.'
 
 const MENSAGENS: Record<string, string> = {
+  ADMIN_NAO_JOGA: 'Contas de administrador não participam de jogos.',
   DATA_INVALIDA: 'Data inválida. Use uma data dos últimos 7 dias, até hoje.',
   JA_NA_SALA: 'Você já está nesta sala.',
   JOGADORES_INVALIDOS: 'Jogadores inválidos para este tipo de partida.',
@@ -41,6 +42,7 @@ export function traduzirErro(e: unknown): string {
         ? e
         : ''
   if (MENSAGENS[msg]) return MENSAGENS[msg]
+  if (msg.includes('profiles_telefone_celular_br')) return 'Informe um celular com DDD, ex.: (11) 98765-4321'
   if (/email rate limit exceeded/i.test(msg)) return AGUARDE
   return PREFIXOS.find(([p]) => msg.startsWith(p))?.[1] ?? GENERICO
 }

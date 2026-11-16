@@ -8,7 +8,7 @@ import { traduzirErro } from '../lib/erros'
 import { formatarData, hojeLocal } from '../lib/datas'
 import PlacarInput, { type SetPlacar } from './PlacarInput'
 
-type Jogador = { id: string; nome: string; foto_url: string | null; categoria: string | null }
+type Jogador = { id: string; nome: string; foto_url: string | null; categoria: string | null; is_admin?: boolean }
 type Vaga = { posicao: number; jogador_id: string | null }
 
 function somaDias(iso: string, dias: number) {
@@ -81,10 +81,10 @@ export default function LancarPartidaPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome, foto_url, categoria')
+        .select('id, nome, foto_url, categoria, is_admin')
         .eq('ativo', true)
       if (error) throw error
-      return [...((data ?? []) as Jogador[])].sort((a, b) => a.nome.localeCompare(b.nome))
+      return [...((data ?? []) as Jogador[])].filter((j) => !j.is_admin).sort((a, b) => a.nome.localeCompare(b.nome))
     },
   })
   const salaQ = useQuery({
@@ -155,6 +155,13 @@ export default function LancarPartidaPage() {
     }
     registrar.mutate()
   }
+
+  if (perfil?.is_admin)
+    return (
+      <p className="text-gray-700">
+        Contas de administrador não lançam partidas. Use o painel Admin para confirmar, corrigir ou cancelar.
+      </p>
+    )
 
   return (
     <form onSubmit={enviar} className="space-y-4 pb-6">

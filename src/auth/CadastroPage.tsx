@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { traduzirErro } from '../lib/erros'
+import { ERRO_CELULAR, normalizarTelefone } from '../lib/whatsapp'
 import { Campo, CartaoAuth, CLASSE_BOTAO, CLASSE_INPUT } from './Campo'
 
 export default function CadastroPage() {
@@ -29,6 +30,11 @@ export default function CadastroPage() {
       setErro('A senha deve ter pelo menos 6 caracteres.')
       return
     }
+    const telefone = normalizarTelefone(f.telefone)
+    if (!telefone) {
+      setErro(ERRO_CELULAR)
+      return
+    }
     setEnviando(true)
     const { data, error } = await supabase.auth.signUp({
       email: f.email,
@@ -37,7 +43,7 @@ export default function CadastroPage() {
         data: {
           nome: f.nome,
           data_nascimento: f.data_nascimento,
-          telefone: f.telefone,
+          telefone,
           genero: f.genero,
           categoria: f.categoria,
         },

@@ -45,7 +45,7 @@ export default function BuscarPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome, categoria, genero, foto_url, disponibilidade')
+        .select('id, nome, categoria, genero, foto_url, disponibilidade, is_admin')
         .eq('ativo', true)
       if (error) throw error
       return data
@@ -54,7 +54,7 @@ export default function BuscarPage() {
 
   const meus = perfil?.disponibilidade ?? []
   const lista = (data ?? [])
-    .filter((j) => j.id !== perfil?.id)
+    .filter((j) => j.id !== perfil?.id && !j.is_admin)
     .filter((j) => !categoria || j.categoria === categoria)
     .filter((j) => !genero || j.genero === genero)
     .filter(

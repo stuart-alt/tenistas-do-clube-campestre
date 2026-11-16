@@ -55,6 +55,7 @@ export default function SalaPage() {
 
   const vagas = sala.vagas ?? []
   const total = totalVagas(sala.modalidade)
+  const ehAdmin = !!perfil?.is_admin
   const meu = vagas.some((v) => v.jogador_id === perfil?.id)
   const podeCancelar = sala.criador === perfil?.id || !!perfil?.is_admin
   const { dia, hora } = formatarDiaHora(sala.data_hora)
@@ -72,7 +73,7 @@ export default function SalaPage() {
         ) : (
           <>
             <span className="flex-1 text-gray-500">Vaga livre</span>
-            {!meu && sala.status === 'aberta' && (
+            {!meu && !ehAdmin && sala.status === 'aberta' && (
               <button
                 disabled={acao.isPending}
                 onClick={() => acao.mutate({ rpc: 'entrar_sala', posicao })}
@@ -112,7 +113,7 @@ export default function SalaPage() {
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        {sala.status === 'confirmada' && jaPassou && (
+        {sala.status === 'confirmada' && jaPassou && !ehAdmin && (
           <Link to={`/partidas/nova?sala=${sala.id}`} className="rounded bg-green-800 px-3 py-2 font-bold text-white">
             Lançar resultado
           </Link>

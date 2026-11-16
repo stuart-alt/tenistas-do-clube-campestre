@@ -10,6 +10,7 @@ const jogadores = [
   { ...base, id: 'b', nome: 'Bruno', categoria: 'B', disponibilidade: ['dom_tarde'] },
   { ...base, id: 'a', nome: 'Ana', categoria: 'A', disponibilidade: ['seg_noite', 'sab_manha'] },
   { ...base, id: 'c', nome: 'Carla', categoria: 'B', disponibilidade: ['seg_noite'] },
+  { ...base, id: 'adm', nome: 'Admin', categoria: 'A', is_admin: true, disponibilidade: ['seg_noite', 'sab_manha'] },
 ]
 
 vi.mock('../lib/supabase', () => ({
@@ -41,6 +42,12 @@ test('ordena por horários em comum e depois nome, sem o próprio usuário', asy
   montar()
   await screen.findByText('Ana')
   expect(nomes()).toEqual(['Ana', 'Carla', 'Bruno'])
+})
+
+test('administradores não aparecem na lista', async () => {
+  montar()
+  await screen.findByText('Ana')
+  expect(nomes()).not.toContain('Admin')
 })
 
 test('filtro de dia e período', async () => {

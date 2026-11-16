@@ -10,6 +10,7 @@ const vagas = [
 ]
 let sala: Record<string, unknown> | null
 let usuario = 'carla'
+let admin = false
 const rpc = vi.fn()
 const buscar = vi.fn()
 
@@ -28,7 +29,7 @@ vi.mock('../lib/supabase', () => ({
     }),
   },
 }))
-vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: { id: usuario, is_admin: false } }) }))
+vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: { id: usuario, is_admin: admin } }) }))
 
 function montar() {
   render(
@@ -47,6 +48,7 @@ beforeEach(() => {
   rpc.mockReset()
   buscar.mockReset()
   usuario = 'carla'
+  admin = false
   sala = {
     id: 's1',
     criador: 'ana',
@@ -111,4 +113,22 @@ test('sala inexistente', async () => {
   sala = null
   montar()
   expect(await screen.findByText('Sala não encontrada ou encerrada.')).toBeInTheDocument()
+})
+
+test('administrador não vê Entrar aqui nem Lançar resultado, mas vê Cancelar sala', async () => {
+  usuario = 'adm'
+  admin = true
+  sala = { ...sala, status: 'confirmada', data_hora: new Date(Date.now() - 3600000).toISOString() }
+  montar()
+  expect(await screen.findByRole('button', { name: 'Cancelar sala' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Entrar aqui' })).toBeNull()
+  expect(screen.queryByRole('link', { name: 'Lançar resultado' })).toBeNull()
+})
+
+test('administrador não vê Entrar aqui em sala aberta', async () => {
+  usuario = 'adm'
+  admin = true
+  montar()
+  await screen.findByText('Dupla 1')
+  expect(screen.queryByRole('button', { name: 'Entrar aqui' })).toBeNull()
 })

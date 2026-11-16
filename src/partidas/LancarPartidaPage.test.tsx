@@ -9,7 +9,9 @@ const jogadores = [
   { id: 'ana', nome: 'Ana', foto_url: null, categoria: 'A' },
   { id: 'bruno', nome: 'Bruno', foto_url: null, categoria: 'B' },
   { id: 'carla', nome: 'Carla', foto_url: null, categoria: 'B' },
+  { id: 'adm', nome: 'Admin', foto_url: null, categoria: 'A', is_admin: true },
 ]
+let perfilAtual: Record<string, unknown> = { id: 'ana' }
 const sala = {
   modalidade: 'simples',
   data_hora: new Date().toISOString(),
@@ -31,7 +33,7 @@ vi.mock('../lib/supabase', () => ({
     }),
   },
 }))
-vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: { id: 'ana' } }) }))
+vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: perfilAtual }) }))
 
 function montar(url = '/partidas/nova') {
   render(
@@ -47,7 +49,10 @@ function definir(rotulo: string, valor: number) {
   fireEvent.change(screen.getByLabelText(rotulo), { target: { value: String(valor) } })
 }
 
-beforeEach(() => rpc.mockReset())
+beforeEach(() => {
+  rpc.mockReset()
+  perfilAtual = { id: 'ana' }
+})
 
 test('data padrão é hoje, com min = hoje-7 e max = hoje', () => {
   montar()
@@ -99,4 +104,19 @@ test('mostra erro traduzido do RPC', async () => {
 test('com ?sala= os jogadores vêm preenchidos', async () => {
   montar('/partidas/nova?sala=s1')
   await waitFor(() => expect(screen.getByLabelText('Adversário')).toHaveValue('carla'))
+})
+
+test('o seletor de adversário não oferece administradores', async () => {
+  montar()
+  await screen.findByRole('option', { name: 'Bruno (B)' })
+  expect(screen.queryByRole('option', { name: /Admin/ })).toBeNull()
+})
+
+test('administrador vê aviso em vez do formulário', async () => {
+  perfilAtual = { id: 'adm', is_admin: true }
+  montar()
+  expect(
+    await screen.findByText('Contas de administrador não lançam partidas. Use o painel Admin para confirmar, corrigir ou cancelar.'),
+  ).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Enviar resultado' })).toBeNull()
 })

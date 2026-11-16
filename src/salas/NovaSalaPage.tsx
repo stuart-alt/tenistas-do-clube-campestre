@@ -4,8 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { traduzirErro } from '../lib/erros'
 import { CLASSE_INPUT } from '../auth/Campo'
+import { useAuth } from '../auth/AuthProvider'
 
 export default function NovaSalaPage() {
+  const { perfil } = useAuth()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [modalidade, setModalidade] = useState('simples')
@@ -39,6 +41,8 @@ export default function NovaSalaPage() {
     if (!dataHora) return setErro('Informe data e hora.')
     criar.mutate()
   }
+
+  if (perfil?.is_admin) return <p className="text-gray-700">Contas de administrador não participam de jogos.</p>
 
   return (
     <form onSubmit={enviar} className="space-y-3">
