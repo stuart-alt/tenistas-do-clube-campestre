@@ -26,3 +26,20 @@ test('super tie-break aparece só no último set', async () => {
   await userEvent.click(screen.getByRole('button', { name: '+ set' }))
   expect(screen.getAllByLabelText('Super tie-break')).toHaveLength(1)
 })
+
+test('ao adicionar set, só o último pode ter super tie-break', async () => {
+  const onChange = vi.fn()
+  render(
+    <PlacarInput
+      valor={[
+        { l1: 6, l2: 4, stb: false },
+        { l1: 1, l2: 0, stb: true },
+      ]}
+      onChange={onChange}
+    />,
+  )
+  await userEvent.click(screen.getByRole('button', { name: '+ set' }))
+  const v = onChange.mock.calls[0][0] as SetPlacar[]
+  expect(v).toHaveLength(3)
+  expect(v.slice(0, -1).every((s) => !s.stb)).toBe(true)
+})

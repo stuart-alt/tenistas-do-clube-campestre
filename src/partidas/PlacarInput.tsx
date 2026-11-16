@@ -46,7 +46,7 @@ export default function PlacarInput({
                 <button
                   type="button"
                   className="ml-auto text-sm text-red-700"
-                  onClick={() => onChange(valor.slice(0, -1))}
+                  onClick={() => onChange(valor.slice(0, -1).map((s, i, a) => (i === a.length - 1 ? s : { ...s, stb: false })))}
                 >
                   Remover set
                 </button>
@@ -69,7 +69,7 @@ export default function PlacarInput({
         type="button"
         disabled={valor.length >= 3}
         className="rounded border border-green-800 px-3 py-1 text-sm font-medium text-green-800 disabled:opacity-50"
-        onClick={() => onChange([...valor, { l1: 0, l2: 0, stb: false }])}
+        onClick={() => onChange([...valor.map((s) => ({ ...s, stb: false })), { l1: 0, l2: 0, stb: false }])}
       >
         + set
       </button>
