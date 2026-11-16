@@ -130,7 +130,7 @@ export default function LancarPartidaPage() {
         p_lado1: lado1,
         p_lado2: lado2,
         p_sets: sets,
-        p_sala_id: salaId ?? undefined,
+        p_sala_id: salaId as string, // null quando não há sala (tipos gerados não aceitam null)
       })
       if (error) throw error
     },
