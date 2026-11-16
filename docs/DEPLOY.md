@@ -32,6 +32,14 @@ select * from cron.job;
 
 Deve aparecer uma linha com `jobname = auto-confirmar`.
 
+Se não aparecer nenhuma linha (por exemplo, se a extensão foi desligada e religada no painel, o que apaga os jobs), crie o job de novo no **SQL Editor**:
+
+```sql
+select cron.schedule('auto-confirmar', '0 * * * *', 'select public.auto_confirmar_partidas()');
+```
+
+Pode rodar mais de uma vez sem problema; se o job já existir, ele é só atualizado.
+
 ## 3. Autenticação (Auth)
 
 1. **Authentication → Providers → Email**: desligue **Confirm email** e salve. (Os jogadores entram direto após o cadastro.)
@@ -75,8 +83,30 @@ O e-mail padrão do Supabase tem limite muito baixo; usamos uma conta Gmail do c
 2. No GitHub, abra o repositório → **Settings → Secrets and variables → Actions → New repository secret** e crie:
    - `VITE_SUPABASE_URL` = Project URL
    - `VITE_SUPABASE_ANON_KEY` = chave anon/public
-3. **Settings → Pages → Source**: escolha **GitHub Actions**.
-4. Envie o código para a branch `main`. O workflow `.github/workflows/deploy.yml` roda sozinho; acompanhe na aba **Actions** até ficar verde. Depois abra o endereço do app.
+3. **Ativar o GitHub Pages**
+   1. Abra https://github.com/stuart-alt/tenistas-do-clube-campestre e clique na aba **Settings** (ícone de engrenagem, no topo, à direita de *Insights*).
+   2. No menu da esquerda, na seção **Code and automation**, clique em **Pages**.
+   3. Em **Build and deployment**, no campo **Source**, troque *Deploy from a branch* por **GitHub Actions**. Salva sozinho, não há botão.
+   4. **Não** clique nos modelos de workflow que o GitHub sugere ("Static HTML", "Jekyll"…): o projeto já tem o seu (`.github/workflows/deploy.yml`).
+   5. Se aparecer um aviso de que o Pages exige plano pago: o repositório está **privado**. No plano gratuito, o Pages só funciona com repositório **público** (**Settings → General**, no fim da página, **Danger Zone → Change visibility → Public**). O código fica visível, mas nenhum segredo vai junto: as chaves ficam nos *secrets*.
+4. **Enviar o código para a `main`** (no terminal do VS Code, dentro da pasta do projeto):
+
+   ```bash
+   git checkout main
+   git merge feat/app-v1
+   git push origin main
+   ```
+
+   O `push` dispara a publicação automaticamente.
+5. **Acompanhar a publicação**
+   1. No repositório, clique na aba **Actions**. Aparece uma execução chamada **Deploy** com o título do último commit e uma bolinha amarela (rodando).
+   2. Leva de 2 a 4 minutos: ela instala as dependências, roda os testes, monta o app e publica.
+   3. Quando a bolinha ficar com um **✓ verde**, clique na execução: no quadro **deploy** aparece o link do app. O endereço é sempre https://stuart-alt.github.io/tenistas-do-clube-campestre/
+   4. Se ficar com um **✗ vermelho**: clique na execução → no quadro **deploy** → na etapa marcada em vermelho, e leia a mensagem. Os casos mais comuns:
+      - *Get Pages site failed* / *Not Found* na etapa `deploy-pages`: o passo 3 acima (Source = GitHub Actions) não foi feito. Faça e, na execução que falhou, clique em **Re-run all jobs**.
+      - Falha em `npm test`: algum teste quebrou; não publique, me chame.
+   5. Se o workflow passou mas o app abre em branco ou com erro ao entrar: os *secrets* do item 2 estão faltando ou com o nome errado. Corrija e rode de novo em **Actions → Deploy → Run workflow** (botão à direita).
+6. Para publicar de novo no futuro, basta enviar commits para a `main`; ou rodar manualmente em **Actions → Deploy → Run workflow**.
 
 ## 6. Primeiro administrador
 
