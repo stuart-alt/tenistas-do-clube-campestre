@@ -40,4 +40,30 @@ begin
 end;
 $$;
 
+-- Insere partida já confirmada (sem validação de data) e recalcula o ranking da modalidade
+create function tests.partida_confirmada(p_modalidade text, p_data date, p_lado1 uuid[], p_lado2 uuid[], p_sets jsonb)
+returns uuid
+language plpgsql security definer
+as $$
+declare
+  v_id uuid;
+begin
+  insert into public.partidas (modalidade, data_jogo, lancado_por, status, confirmado_por, confirmado_em, created_at)
+  values (p_modalidade, p_data, p_lado1[1], 'confirmada', p_lado2[1], clock_timestamp(), clock_timestamp())
+  returning id into v_id;
+
+  insert into public.partida_jogadores (partida_id, jogador_id, lado)
+  select v_id, j, 1 from unnest(p_lado1) j
+  union all
+  select v_id, j, 2 from unnest(p_lado2) j;
+
+  insert into public.partida_sets (partida_id, ordem, games_lado1, games_lado2, super_tiebreak)
+  select v_id, o, (e ->> 'l1')::smallint, (e ->> 'l2')::smallint, coalesce((e ->> 'stb')::boolean, false)
+  from jsonb_array_elements(p_sets) with ordinality t (e, o);
+
+  perform public.recalcular_ranking(p_modalidade);
+  return v_id;
+end;
+$$;
+
 grant execute on all functions in schema tests to authenticated;
