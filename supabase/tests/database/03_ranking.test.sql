@@ -1,5 +1,5 @@
 begin;
-select plan(32);
+select plan(33);
 
 create temp table u (k text primary key, id uuid);
 grant all on u to authenticated;
@@ -135,7 +135,7 @@ select is((select count(*) from pontos_expirando(pg_temp.id('B'), 'duplas')), 0:
 -- Acesso pelo app
 select tests.logar_como(pg_temp.id('A'));
 select is((select count(*) from ranking where modalidade = 'simples'), 2::bigint, 'authenticated lê ranking');
-update regras set pts_vitoria = 999;
+select throws_ok($$update regras set pts_vitoria = 999$$, '42501', null, 'authenticated não escreve em regras');
 select is((select pts_vitoria from regras where modalidade = 'simples'), 50, 'authenticated não altera regras');
 select throws_ok($$select recalcular_ranking('simples')$$, '42501', null, 'authenticated não chama recalcular_ranking');
 select tests.deslogar();

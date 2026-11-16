@@ -142,15 +142,26 @@ begin
   select v_id, o, (e ->> 'l1')::smallint, (e ->> 'l2')::smallint, coalesce((e ->> 'stb')::boolean, false)
   from jsonb_array_elements(p_sets) with ordinality t (e, o);
 
-  -- Adversários de quem lançou (se o lançador é admin de fora, todos os jogadores)
   select nome into v_nome from profiles where id = auth.uid();
+
+  -- Admin de fora lançando: ninguém poderia confirmar/contestar, então nasce confirmada
+  if not (auth.uid() = any (v_todos)) then
+    update partidas set status = 'confirmada', confirmado_por = auth.uid(), confirmado_em = now()
+    where id = v_id;
+    perform recalcular_ranking(p_modalidade);
+    perform notificar_jogadores_partida(v_id, null, 'partida_confirmada',
+      'Uma partida foi registrada por ' || coalesce(v_nome, 'um administrador') || '. Seus pontos foram atualizados.',
+      '/ranking');
+    return v_id;
+  end if;
+
+  -- Adversários de quem lançou
   for v_j in
     select pj.jogador_id
     from partida_jogadores pj
     where pj.partida_id = v_id
-      and pj.jogador_id <> auth.uid()
-      and pj.lado is distinct from (select lado from partida_jogadores
-                                    where partida_id = v_id and jogador_id = auth.uid())
+      and pj.lado <> (select lado from partida_jogadores
+                      where partida_id = v_id and jogador_id = auth.uid())
   loop
     perform notificar(v_j.jogador_id, 'partida_pendente',
       coalesce(v_nome, 'Alguém') || ' lançou uma partida contra você. Confirme ou conteste o placar.',
@@ -425,11 +436,13 @@ declare
   v_mod text;
   v_id uuid;
 begin
-  select coalesce(array_agg(id), '{}') into v_ids from partidas
-  where status = 'pendente' and created_at < now() - interval '48 hours';
-
-  update partidas set status = 'confirmada', confirmado_em = now()
-  where id = any (v_ids);
+  -- Seleção e atualização no mesmo comando: só vira confirmada quem ainda está pendente
+  with c as (
+    update partidas set status = 'confirmada', confirmado_em = now()
+    where status = 'pendente' and created_at < now() - interval '48 hours'
+    returning id, modalidade
+  )
+  select coalesce(array_agg(id), '{}') into v_ids from c;
 
   for v_mod in select distinct modalidade from partidas where id = any (v_ids) loop
     perform recalcular_ranking(v_mod);
@@ -453,3 +466,7 @@ grant execute on function public.confirmar_partida(uuid), public.contestar_parti
 
 create extension if not exists pg_cron;
 select cron.schedule('auto-confirmar', '0 * * * *', 'select public.auto_confirmar_partidas()');
+
+-- Sem escrita direta do cliente nas tabelas de jogo (os defaults do Supabase concedem ALL)
+revoke insert, update, delete, truncate on public.partidas, public.partida_jogadores,
+  public.partida_sets, public.pontos_partida, public.regras from anon, authenticated;

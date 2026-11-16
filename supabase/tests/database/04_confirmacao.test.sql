@@ -1,5 +1,5 @@
 begin;
-select plan(32);
+select plan(38);
 
 create temp table u (k text primary key, id uuid);
 grant all on u to authenticated;
@@ -106,6 +106,23 @@ select is(auto_confirmar_partidas(), 1, 'auto-confirma 1 partida (49 h)');
 select is(pg_temp.st('a49'), 'confirmada', '49 h: confirmada');
 select is(pg_temp.st('a47'), 'pendente', '47 h: continua pendente');
 select pg_temp.limpar();
+
+-- Admin de fora lança: nasce confirmada
+select tests.logar_como(pg_temp.id('ADM'));
+insert into u values ('adm', registrar_partida('simples', hoje(), array[pg_temp.id('A')], array[pg_temp.id('B')],
+  '[{"l1":6,"l2":0},{"l1":6,"l2":0}]'));
+select tests.deslogar();
+select is(pg_temp.st('adm'), 'confirmada', 'admin de fora: partida já confirmada');
+select is(pg_temp.rk('A', 'simples'), 82, 'admin de fora: ranking recalculado');
+select is(pg_temp.nots('B', 'partida_confirmada'), 1, 'admin de fora: jogador recebe partida_confirmada');
+select is(pg_temp.nots('B', 'partida_pendente'), 0, 'admin de fora: sem partida_pendente');
+select pg_temp.limpar();
+
+-- Sem escrita direta do cliente
+select tests.logar_como(pg_temp.id('A'));
+select throws_ok($$update regras set pts_vitoria = 1$$, '42501', null, 'cliente não escreve em regras');
+select throws_ok($$delete from partidas$$, '42501', null, 'cliente não apaga partidas');
+select tests.deslogar();
 
 -- registrar sem usuário logado
 select set_config('request.jwt.claims', '{}', true);
