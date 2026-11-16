@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { traduzirErro } from '../lib/erros'
@@ -55,7 +56,12 @@ export default function EditarPerfilPage() {
 
   return (
     <form onSubmit={salvar} className="mx-auto max-w-md space-y-4">
-      <h2 className="text-xl font-bold text-green-800">Meu perfil</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-green-800">Meu perfil</h2>
+        <Link to={`/jogadores/${perfil.id}`} className="text-sm text-green-800 underline">
+          Ver meu perfil
+        </Link>
+      </div>
       <div className="flex items-center gap-4">
         <Avatar url={f.foto_url} nome={f.nome} tamanho="h-20 w-20" />
         <FotoUpload onEnviada={(url) => setF((a) => ({ ...a, foto_url: url }))} />

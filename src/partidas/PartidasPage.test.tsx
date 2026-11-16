@@ -18,12 +18,23 @@ const partidas = [
   { ...base, id: 'p2', lancado_por: 'ana', partida_jogadores: [jog('ana', 1, 'Ana'), jog('carla', 2, 'Carla')] },
 ]
 
+const consulta = vi.hoisted(() => ({ select: '', eq: [] as [string, string][] }))
+
 vi.mock('../lib/supabase', () => ({
   supabase: {
     from: () => ({
-      select: () => ({
-        order: () => ({ order: () => Promise.resolve({ data: partidas, error: null }) }),
-      }),
+      select: (s: string) => {
+        consulta.select = s
+        const b = {
+          eq: (c: string, v: string) => {
+            consulta.eq.push([c, v])
+            return b
+          },
+          order: () => b,
+          then: (ok: (r: unknown) => void) => ok({ data: partidas, error: null }),
+        }
+        return b
+      },
     }),
   },
 }))
@@ -46,4 +57,18 @@ test('separa pendentes por quem precisa confirmar', async () => {
   expect(within(minha).queryByText(/Carla/)).toBeNull()
   expect(within(outro).getByText(/Carla/)).toBeInTheDocument()
   expect(within(outro).getByText(/confirma automaticamente em 48h/)).toBeInTheDocument()
+})
+
+test('filtra no servidor as partidas do usuário', async () => {
+  consulta.eq = []
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <PartidasPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+  await screen.findByText('Aguardando sua confirmação')
+  expect(consulta.select).toContain('eu:partida_jogadores!inner(jogador_id)')
+  expect(consulta.eq).toContainEqual(['eu.jogador_id', 'ana'])
 })

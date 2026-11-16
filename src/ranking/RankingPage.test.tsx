@@ -77,3 +77,15 @@ test('lista vazia', async () => {
   montar()
   expect(await screen.findByText('Nenhuma partida confirmada nos últimos 6 meses.')).toBeInTheDocument()
 })
+
+test('empate na posição: mais vitórias primeiro, depois nome', async () => {
+  linhas = [
+    { ...l('simples', 'z', 'Zeca', 'C', 300, 1), vitorias: 5 },
+    { ...l('simples', 'b', 'Beto', 'C', 300, 1), vitorias: 2 },
+    { ...l('simples', 'a', 'Ana', 'B', 300, 1), vitorias: 2 },
+  ]
+  montar()
+  await screen.findByText('Ana')
+  const itens = screen.getAllByRole('link')
+  expect(itens.map((i) => within(i).getByRole('heading').textContent)).toEqual(['Zeca', 'Ana', 'Beto'])
+})

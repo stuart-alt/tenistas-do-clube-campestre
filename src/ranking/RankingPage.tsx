@@ -29,7 +29,7 @@ export default function RankingPage() {
       const linhas = [...(r.data ?? [])].sort(
         (a, b) =>
           (a.posicao ?? 0) - (b.posicao ?? 0) ||
-          (b.pontos ?? 0) - (a.pontos ?? 0) ||
+          (b.vitorias ?? 0) - (a.vitorias ?? 0) ||
           (a.nome ?? '').localeCompare(b.nome ?? ''),
       )
       return { linhas, janela: regra.data?.[0]?.janela_meses ?? 6 }

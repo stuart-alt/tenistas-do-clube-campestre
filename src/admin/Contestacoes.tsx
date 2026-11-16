@@ -129,21 +129,39 @@ export default function Contestacoes() {
   const { data, isPending, error } = useQuery({
     queryKey: ['partidas', 'admin'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('partidas')
-        .select(SELECT)
-        .order('data_jogo', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(200)
-      if (error) throw error
-      return (data ?? []) as unknown as PartidaDetalhe[]
+      const [recentes, contestadas] = await Promise.all([
+        supabase
+          .from('partidas')
+          .select(SELECT)
+          .order('data_jogo', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(200),
+        // Todas as contestadas, mesmo as mais antigas que as últimas 200
+        supabase
+          .from('partidas')
+          .select(SELECT)
+          .eq('status', 'contestada')
+          .order('data_jogo', { ascending: false })
+          .order('created_at', { ascending: false }),
+      ])
+      if (recentes.error) throw recentes.error
+      if (contestadas.error) throw contestadas.error
+      return {
+        recentes: (recentes.data ?? []) as unknown as PartidaDetalhe[],
+        contestadas: (contestadas.data ?? []) as unknown as PartidaDetalhe[],
+      }
     },
   })
 
   const termo = busca.trim().toLowerCase()
-  const contestadas = (data ?? []).filter((p) => p.status === 'contestada')
+  const contestadas = data?.contestadas ?? []
+  // As contestadas já aparecem na seção de cima
   const achadas = termo
-    ? (data ?? []).filter((p) => p.partida_jogadores.some((j) => j.profiles?.nome.toLowerCase().includes(termo)))
+    ? (data?.recentes ?? []).filter(
+        (p) =>
+          p.status !== 'contestada' &&
+          p.partida_jogadores.some((j) => j.profiles?.nome.toLowerCase().includes(termo)),
+      )
     : []
 
   return (

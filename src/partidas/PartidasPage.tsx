@@ -97,10 +97,13 @@ export default function PartidasPage() {
   const eu = perfil?.id ?? ''
   const { data, isPending, error } = useQuery({
     queryKey: ['partidas', 'lista', eu],
+    enabled: !!eu,
     queryFn: async () => {
+      // "eu" restringe às partidas em que o usuário joga; partida_jogadores segue trazendo todos
       const { data, error } = await supabase
         .from('partidas')
-        .select(SELECT)
+        .select(SELECT + ', eu:partida_jogadores!inner(jogador_id)')
+        .eq('eu.jogador_id', eu)
         .order('data_jogo', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -157,7 +160,7 @@ export default function PartidasPage() {
       )}
       <Link
         to="/partidas/nova"
-        className="fixed bottom-20 right-4 rounded-full bg-green-800 px-5 py-3 font-semibold text-white shadow-lg"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 rounded-full bg-green-800 px-5 py-3 font-semibold text-white shadow-lg"
       >
         Lançar resultado
       </Link>

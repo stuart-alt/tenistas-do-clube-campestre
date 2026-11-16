@@ -34,10 +34,10 @@ export default function Layout() {
         </Link>
       </header>
       <InstalarBanner />
-      <main className="flex-1 p-4 pb-20">
+      <main className="flex-1 p-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <Outlet />
       </main>
-      <nav className="fixed inset-x-0 bottom-0 flex border-t bg-white">
+      <nav className="fixed inset-x-0 bottom-0 flex border-t bg-white pb-[env(safe-area-inset-bottom)]">
         {ABAS.map((a) => (
           <NavLink
             key={a.para}
