@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { traduzirErro } from '../lib/erros'
 import Avatar from '../perfil/Avatar'
+import { mensagemConvite } from './convite'
 import { formatarDiaHora, totalVagas, type SalaLista } from './tipos'
 
 type Acao = { rpc: 'entrar_sala' | 'sair_sala' | 'cancelar_sala'; posicao?: number }
@@ -59,6 +60,8 @@ export default function SalaPage() {
   const meu = vagas.some((v) => v.jogador_id === perfil?.id)
   const podeCancelar = sala.criador === perfil?.id || !!perfil?.is_admin
   const { dia, hora } = formatarDiaHora(sala.data_hora)
+  const vagasLivres = total - vagas.length
+  const podeConvidar = meu && !ehAdmin && vagasLivres > 0
   const jaPassou = new Date(sala.data_hora).getTime() <= Date.now()
 
   const renderVaga = (posicao: number) => {
@@ -117,6 +120,26 @@ export default function SalaPage() {
           <Link to={`/partidas/nova?sala=${sala.id}`} className="rounded bg-green-800 px-3 py-2 font-bold text-white">
             Lançar resultado
           </Link>
+        )}
+        {podeConvidar && (
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+              mensagemConvite(
+                {
+                  id: sala.id,
+                  modalidade: sala.modalidade === 'duplas' ? 'duplas' : 'simples',
+                  data_hora: sala.data_hora,
+                  vagasLivres,
+                },
+                window.location.origin + import.meta.env.BASE_URL,
+              ),
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded bg-green-800 px-3 py-2 font-bold text-white"
+          >
+            Convidar pelo WhatsApp
+          </a>
         )}
         {meu && (
           <button onClick={() => acao.mutate({ rpc: 'sair_sala' })} className="rounded border px-3 py-2">

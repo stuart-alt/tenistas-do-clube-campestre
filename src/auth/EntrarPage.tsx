@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { traduzirErro } from '../lib/erros'
 import { Campo, CartaoAuth, CLASSE_BOTAO } from './Campo'
+import { destinoAposLogin } from './origem'
 
 export default function EntrarPage() {
   const navigate = useNavigate()
+  const { state } = useLocation()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -18,7 +20,7 @@ export default function EntrarPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
     setEnviando(false)
     if (error) setErro(traduzirErro(error))
-    else navigate('/')
+    else navigate(destinoAposLogin(state), { replace: true })
   }
 
   return (
@@ -42,7 +44,7 @@ export default function EntrarPage() {
       </p>
       <p className="mt-2 text-sm">
         Primeira vez?{' '}
-        <Link to="/cadastro" className="text-green-800 underline">
+        <Link to="/cadastro" state={state} className="text-green-800 underline">
           Cadastre-se
         </Link>
       </p>

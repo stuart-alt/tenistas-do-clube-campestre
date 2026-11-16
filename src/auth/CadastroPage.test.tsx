@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import CadastroPage from './CadastroPage'
 import { supabase } from '../lib/supabase'
 
@@ -22,17 +22,28 @@ async function preencher(senha: string, telefone = '(11) 98765-4321') {
   await u.click(screen.getByRole('button', { name: 'Cadastrar' }))
 }
 
+function montar(state?: unknown) {
+  render(
+    <MemoryRouter
+      initialEntries={[{ pathname: '/cadastro', state }]}
+      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+    >
+      <Routes>
+        <Route path="/cadastro" element={<CadastroPage />} />
+        <Route path="/salas/abc" element={<p>sala abc</p>} />
+        <Route path="/" element={<p>inicio</p>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
 beforeEach(() => {
   signUp.mockReset()
   signUp.mockResolvedValue({ data: { user: null, session: null }, error: null } as never)
-  render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <CadastroPage />
-    </MemoryRouter>,
-  )
 })
 
 test('envia os dados do cadastro como metadata', async () => {
+  montar()
   await preencher('segredo123')
   expect(signUp).toHaveBeenCalledWith({
     email: 'maria@exemplo.com',
@@ -50,18 +61,35 @@ test('envia os dados do cadastro como metadata', async () => {
 })
 
 test('senha curta mostra erro sem chamar o Supabase', async () => {
+  montar()
   await preencher('123')
   expect(signUp).not.toHaveBeenCalled()
   expect(screen.getByRole('alert')).toHaveTextContent('A senha deve ter pelo menos 6 caracteres.')
 })
 
 test('sem sessão após o cadastro, mostra mensagem em vez de navegar', async () => {
+  montar()
   await preencher('segredo123')
   expect(await screen.findByText('Cadastro feito. Entre com seu e-mail e senha.')).toBeInTheDocument()
 })
 
 test('telefone inválido mostra erro e não chama o Supabase', async () => {
+  montar()
   await preencher('segredo123', '(11) 3333-4444')
   expect(signUp).not.toHaveBeenCalled()
   expect(screen.getByRole('alert')).toHaveTextContent('Informe um celular com DDD, ex.: (11) 98765-4321')
+})
+
+test('com sessão após o cadastro, volta para a página de origem', async () => {
+  signUp.mockResolvedValue({ data: { user: {}, session: {} }, error: null } as never)
+  montar({ de: { pathname: '/salas/abc', search: '' } })
+  await preencher('segredo123')
+  expect(await screen.findByText('sala abc')).toBeInTheDocument()
+})
+
+test('com sessão e sem origem, vai para a raiz', async () => {
+  signUp.mockResolvedValue({ data: { user: {}, session: {} }, error: null } as never)
+  montar()
+  await preencher('segredo123')
+  expect(await screen.findByText('inicio')).toBeInTheDocument()
 })

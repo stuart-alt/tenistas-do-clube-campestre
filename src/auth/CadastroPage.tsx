@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { traduzirErro } from '../lib/erros'
 import { ERRO_CELULAR, normalizarTelefone } from '../lib/whatsapp'
 import { Campo, CartaoAuth, CLASSE_BOTAO, CLASSE_INPUT } from './Campo'
+import { destinoAposLogin } from './origem'
 
 export default function CadastroPage() {
   const navigate = useNavigate()
+  const { state } = useLocation()
   const [f, setF] = useState({
     nome: '',
     data_nascimento: '',
@@ -51,7 +53,7 @@ export default function CadastroPage() {
     })
     setEnviando(false)
     if (error) setErro(traduzirErro(error))
-    else if (data.session) navigate('/')
+    else if (data.session) navigate(destinoAposLogin(state), { replace: true })
     else setCadastrado(true)
   }
 

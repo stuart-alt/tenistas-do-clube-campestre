@@ -132,3 +132,39 @@ test('administrador não vê Entrar aqui em sala aberta', async () => {
   await screen.findByText('Dupla 1')
   expect(screen.queryByRole('button', { name: 'Entrar aqui' })).toBeNull()
 })
+
+test('ocupante com vaga livre vê o link de convite pelo WhatsApp', async () => {
+  usuario = 'ana'
+  montar()
+  const link = await screen.findByRole('link', { name: 'Convidar pelo WhatsApp' })
+  const href = link.getAttribute('href') as string
+  expect(href.startsWith('https://wa.me/?text=')).toBe(true)
+  expect(href).toContain(encodeURIComponent(window.location.origin + import.meta.env.BASE_URL + 'salas/s1'))
+  expect(link).toHaveAttribute('target', '_blank')
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+})
+
+test('sala cheia não mostra o convite', async () => {
+  usuario = 'ana'
+  sala = {
+    ...sala,
+    vagas: [1, 2, 3, 4].map((p) => ({ posicao: p, jogador_id: p === 1 ? 'ana' : `j${p}`, nome: `J${p}`, foto_url: null })),
+  }
+  montar()
+  await screen.findByText('Dupla 1')
+  expect(screen.queryByRole('link', { name: 'Convidar pelo WhatsApp' })).toBeNull()
+})
+
+test('quem não ocupa vaga não vê o convite', async () => {
+  montar()
+  await screen.findByText('Dupla 1')
+  expect(screen.queryByRole('link', { name: 'Convidar pelo WhatsApp' })).toBeNull()
+})
+
+test('administrador não vê o convite', async () => {
+  usuario = 'ana'
+  admin = true
+  montar()
+  await screen.findByText('Dupla 1')
+  expect(screen.queryByRole('link', { name: 'Convidar pelo WhatsApp' })).toBeNull()
+})

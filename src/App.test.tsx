@@ -37,6 +37,17 @@ test('sem sessão, redireciona para a tela de entrar', async () => {
   expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
 })
 
+test('sem sessão, abrir uma sala leva ao Entrar', async () => {
+  preparar(null, null)
+  irPara('/salas/abc')
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <App />
+    </QueryClientProvider>,
+  )
+  expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
+})
+
 test('admin recarregando /admin continua em /admin', async () => {
   preparar({ user: { id: 'u1' } }, { ...PERFIL, is_admin: true })
   irPara('/admin')
