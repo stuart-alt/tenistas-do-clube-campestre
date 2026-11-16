@@ -9,7 +9,8 @@ import Layout from './layout/Layout'
 import Placeholder from './layout/Placeholder'
 
 function SomenteAdmin() {
-  const { perfil } = useAuth()
+  const { perfil, carregando } = useAuth()
+  if (carregando) return null
   return perfil?.is_admin ? <Outlet /> : <Navigate to="/ranking" replace />
 }
 

@@ -54,3 +54,8 @@ test('senha curta mostra erro sem chamar o Supabase', async () => {
   expect(signUp).not.toHaveBeenCalled()
   expect(screen.getByRole('alert')).toHaveTextContent('A senha deve ter pelo menos 6 caracteres.')
 })
+
+test('sem sessão após o cadastro, mostra mensagem em vez de navegar', async () => {
+  await preencher('segredo123')
+  expect(await screen.findByText('Cadastro feito. Entre com seu e-mail e senha.')).toBeInTheDocument()
+})

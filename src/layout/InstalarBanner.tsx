@@ -17,6 +17,7 @@ export default function InstalarBanner() {
   const [dispensado, setDispensado] = useState(jaDispensado)
   const [evento, setEvento] = useState<EventoInstalacao | null>(null)
   const plataforma = detectarPlataforma(navigator.userAgent)
+  const safariIos = !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent)
 
   useEffect(() => {
     const aoReceber = (e: Event) => {
@@ -42,7 +43,9 @@ export default function InstalarBanner() {
   return (
     <div className="flex items-center gap-3 bg-green-50 px-4 py-3 text-sm">
       <div className="flex-1">
-        {plataforma === 'ios' ? (
+        {plataforma === 'ios' && !safariIos ? (
+          <p>Para instalar, abra este link no Safari.</p>
+        ) : plataforma === 'ios' ? (
           <p>
             Instale o app: toque em <strong>Compartilhar</strong> e depois em{' '}
             <strong>Adicionar à Tela de Início</strong>.

@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [carregandoSessao, setCarregandoSessao] = useState(true)
-  const [carregandoPerfil, setCarregandoPerfil] = useState(false)
+  const [perfilBuscadoPara, setPerfilBuscadoPara] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -45,23 +45,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let ativo = true
-    setCarregandoPerfil(true)
     buscarPerfil().finally(() => {
-      if (ativo) setCarregandoPerfil(false)
+      if (ativo) setPerfilBuscadoPara(userId)
     })
     return () => {
       ativo = false
     }
-  }, [buscarPerfil])
+  }, [buscarPerfil, userId])
 
   const valor = useMemo<AuthValor>(
     () => ({
       session,
       perfil,
-      carregando: carregandoSessao || carregandoPerfil,
+      carregando: carregandoSessao || (userId !== null && perfilBuscadoPara !== userId),
       recarregarPerfil: buscarPerfil,
     }),
-    [session, perfil, carregandoSessao, carregandoPerfil, buscarPerfil],
+    [session, perfil, userId, carregandoSessao, perfilBuscadoPara, buscarPerfil],
   )
 
   return <AuthContexto.Provider value={valor}>{children}</AuthContexto.Provider>

@@ -16,6 +16,7 @@ export default function CadastroPage() {
     senha: '',
   })
   const [erro, setErro] = useState<string | null>(null)
+  const [cadastrado, setCadastrado] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   const mudar = (campo: keyof typeof f) => (e: { target: { value: string } }) =>
@@ -29,7 +30,7 @@ export default function CadastroPage() {
       return
     }
     setEnviando(true)
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: f.email,
       password: f.senha,
       options: {
@@ -44,11 +45,15 @@ export default function CadastroPage() {
     })
     setEnviando(false)
     if (error) setErro(traduzirErro(error))
-    else navigate('/')
+    else if (data.session) navigate('/')
+    else setCadastrado(true)
   }
 
   return (
     <CartaoAuth titulo="Cadastro">
+      {cadastrado ? (
+        <p>Cadastro feito. Entre com seu e-mail e senha.</p>
+      ) : (
       <form onSubmit={enviar} className="space-y-4">
         <Campo rotulo="Nome" required value={f.nome} onChange={mudar('nome')} />
         <Campo
@@ -93,6 +98,7 @@ export default function CadastroPage() {
           Cadastrar
         </button>
       </form>
+      )}
       <p className="mt-4 text-sm">
         Já tem conta?{' '}
         <Link to="/entrar" className="text-green-800 underline">

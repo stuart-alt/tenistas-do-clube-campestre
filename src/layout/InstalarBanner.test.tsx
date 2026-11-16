@@ -56,3 +56,12 @@ test('"Agora não" esconde e grava em localStorage', async () => {
   expect(container).toBeEmptyDOMElement()
   expect(localStorage.length).toBe(1)
 })
+
+test('iOS fora do Safari pede para abrir no Safari', () => {
+  vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.0.0 Mobile/15E148 Safari/604.1',
+  )
+  render(<InstalarBanner />)
+  expect(screen.getByText('Para instalar, abra este link no Safari.')).toBeInTheDocument()
+  expect(screen.queryByText(/Adicionar à Tela de Início/)).not.toBeInTheDocument()
+})
