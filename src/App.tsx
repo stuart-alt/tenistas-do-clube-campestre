@@ -11,6 +11,8 @@ import BuscarPage from './jogadores/BuscarPage'
 import PerfilPage from './perfil/PerfilPage'
 import EditarPerfilPage from './perfil/EditarPerfilPage'
 import RankingPage from './ranking/RankingPage'
+import PartidasPage from './partidas/PartidasPage'
+import LancarPartidaPage from './partidas/LancarPartidaPage'
 
 function SomenteAdmin() {
   const { perfil, carregando } = useAuth()
@@ -40,8 +42,8 @@ export default function App() {
               <Route path="/salas" element={<Placeholder titulo="Salas" />} />
               <Route path="/salas/nova" element={<Placeholder titulo="Nova sala" />} />
               <Route path="/salas/:id" element={<Placeholder titulo="Sala" />} />
-              <Route path="/partidas" element={<Placeholder titulo="Partidas" />} />
-              <Route path="/partidas/nova" element={<Placeholder titulo="Lançar partida" />} />
+              <Route path="/partidas" element={<PartidasPage />} />
+              <Route path="/partidas/nova" element={<LancarPartidaPage />} />
               <Route path="/notificacoes" element={<Placeholder titulo="Notificações" />} />
               <Route path="/avisos" element={<Placeholder titulo="Avisos" />} />
               <Route element={<SomenteAdmin />}>
