@@ -27,6 +27,7 @@ export function obterEventoInstalacao(): EventoInstalacao | null {
   return evento
 }
 
+// Usado após consumir o evento (que só vale uma vez) e para reiniciar o estado nos testes.
 export function limparEventoInstalacao(): void {
   evento = null
   avisar()

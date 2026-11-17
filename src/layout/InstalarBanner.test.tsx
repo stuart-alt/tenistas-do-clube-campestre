@@ -141,3 +141,42 @@ test('desktop sem evento não mostra nada', () => {
   const { container } = render(<InstalarBanner />)
   expect(container).toBeEmptyDOMElement()
 })
+
+test('depois de instalar/dispensar o prompt, a instrução manual não volta após 4s', async () => {
+  vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID)
+  dispararInstalacao()
+  const { container } = render(<InstalarBanner />)
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(
+    screen.getByRole('button', { name: 'Instalar app' }),
+  )
+  expect(container).toBeEmptyDOMElement()
+  act(() => {
+    vi.advanceTimersByTime(4000)
+  })
+  expect(container).toBeEmptyDOMElement()
+})
+
+test('appinstalled esconde o aviso e ele não volta após 4s', () => {
+  vi.useFakeTimers()
+  vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID)
+  dispararInstalacao()
+  const { container } = render(<InstalarBanner />)
+  act(() => {
+    window.dispatchEvent(new Event('appinstalled'))
+  })
+  expect(container).toBeEmptyDOMElement()
+  act(() => {
+    vi.advanceTimersByTime(4000)
+  })
+  expect(container).toBeEmptyDOMElement()
+})
+
+test('prompt() que falha não gera rejeição não tratada', async () => {
+  vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID)
+  const prompt = dispararInstalacao()
+  prompt.mockRejectedValue(new Error('falhou'))
+  const { container } = render(<InstalarBanner />)
+  await userEvent.click(screen.getByRole('button', { name: 'Instalar app' }))
+  expect(container).toBeEmptyDOMElement()
+})

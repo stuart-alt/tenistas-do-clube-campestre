@@ -19,17 +19,24 @@ function jaDispensado(): boolean {
 export default function InstalarBanner() {
   const [dispensado, setDispensado] = useState(jaDispensado)
   const [esperou, setEsperou] = useState(false)
+  const [concluido, setConcluido] = useState(false)
   const evento = useSyncExternalStore(aoMudarEventoInstalacao, obterEventoInstalacao)
   const plataforma = detectarPlataforma(navigator.userAgent, navigator.maxTouchPoints)
   const safariIos = !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent)
 
   useEffect(() => {
-    if (plataforma !== 'android' || evento) return
+    const aoInstalar = () => setConcluido(true)
+    window.addEventListener('appinstalled', aoInstalar)
+    return () => window.removeEventListener('appinstalled', aoInstalar)
+  }, [])
+
+  useEffect(() => {
+    if (concluido || plataforma !== 'android' || evento) return
     const t = setTimeout(() => setEsperou(true), 4000)
     return () => clearTimeout(t)
-  }, [plataforma, evento])
+  }, [plataforma, evento, concluido])
 
-  if (dispensado || estaInstalado()) return null
+  if (dispensado || concluido || estaInstalado()) return null
   if (!evento && (plataforma === 'outro' || (plataforma === 'android' && !esperou))) return null
 
   function dispensar() {
@@ -46,8 +53,11 @@ export default function InstalarBanner() {
     try {
       await evento.prompt()
       await evento.userChoice
+    } catch {
+      // prompt() recusado: nada a fazer, o aviso some nesta visita
     } finally {
-      // o evento só vale uma vez; esconde o aviso nesta visita
+      // o evento só vale uma vez; esconde o aviso nesta visita (sem gravar em localStorage)
+      setConcluido(true)
       limparEventoInstalacao()
     }
   }
