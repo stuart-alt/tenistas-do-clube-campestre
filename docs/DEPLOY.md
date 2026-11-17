@@ -21,9 +21,9 @@ npx supabase db push --remote
 
 O `db push` cria as tabelas, regras de segurança, funções e o bucket de fotos `fotos` (já vem nas migrations, não precisa criar à mão). O arquivo `seed.sql` é só para testes locais e **não** vai para produção.
 
-## 2. Conferir o pg_cron e o job `auto-confirmar`
+## 2. Conferir o pg_cron e os jobs `auto-confirmar` e `conquistas-diarias`
 
-As migrations ativam a extensão `pg_cron` e agendam, a cada hora, o job `auto-confirmar` (confirma automaticamente partidas que ninguém contestou).
+As migrations ativam a extensão `pg_cron` e agendam, a cada hora, o job `auto-confirmar` (confirma automaticamente partidas que ninguém contestou) e, todo dia às 09:00 de São Paulo (12:00 UTC), o job `conquistas-diarias` (faz as medalhas vencerem e avisa 10 dias antes de uma medalha sumir).
 
 - Se o `db push` reclamar de `pg_cron`: no painel, vá em **Database → Extensions**, procure `pg_cron`, ative e rode `npx supabase db push --remote` de novo.
 - Para conferir: no painel, abra **SQL Editor** e rode:
@@ -32,12 +32,13 @@ As migrations ativam a extensão `pg_cron` e agendam, a cada hora, o job `auto-c
 select * from cron.job;
 ```
 
-Deve aparecer uma linha com `jobname = auto-confirmar`.
+Devem aparecer as linhas com `jobname = auto-confirmar` e `jobname = conquistas-diarias`.
 
-Se não aparecer nenhuma linha (por exemplo, se a extensão foi desligada e religada no painel, o que apaga os jobs), crie o job de novo no **SQL Editor**:
+Se faltar alguma linha (por exemplo, se a extensão foi desligada e religada no painel, o que apaga os jobs), crie os jobs de novo no **SQL Editor**:
 
 ```sql
 select cron.schedule('auto-confirmar', '0 * * * *', 'select public.auto_confirmar_partidas()');
+select cron.schedule('conquistas-diarias', '0 12 * * *', 'select public.avaliar_conquistas_todos()');
 ```
 
 Pode rodar mais de uma vez sem problema; se o job já existir, ele é só atualizado.

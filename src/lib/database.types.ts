@@ -49,6 +49,78 @@ isOneToOne: false
       referencedColumns: ["jogador_id"]
     }
                   ]
+                },"conquistas_avisos": {
+                  Row: {
+                    "conquista": string,"jogador_id": string,"modalidade": string,"ultimo_aviso_ganho": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "conquista": string,"jogador_id": string,"modalidade": string,"ultimo_aviso_ganho": string
+                  }
+                  Update: {
+                    "conquista"?: string,"jogador_id"?: string,"modalidade"?: string,"ultimo_aviso_ganho"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conquistas_avisos_jogador_id_fkey"
+      columns: ["jogador_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conquistas_avisos_jogador_id_fkey"
+      columns: ["jogador_id"]
+isOneToOne: false
+      referencedRelation: "ranking"
+      referencedColumns: ["jogador_id"]
+    }
+                  ]
+                },"conquistas_catalogo": {
+                  Row: {
+                    "chave": string,"descricao": string,"emoji": string,"limites": (number)[],"nome": string,"ordem": number,"por_modalidade": boolean,"unidade": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "chave": string,"descricao": string,"emoji": string,"limites": (number)[],"nome": string,"ordem": number,"por_modalidade"?: boolean,"unidade": string
+                  }
+                  Update: {
+                    "chave"?: string,"descricao"?: string,"emoji"?: string,"limites"?: (number)[],"nome"?: string,"ordem"?: number,"por_modalidade"?: boolean,"unidade"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"conquistas_jogador": {
+                  Row: {
+                    "avisado_vencimento": boolean,"conquista": string,"desde": string,"expira_em": string | null,"jogador_id": string,"modalidade": string | null,"nivel": number,"valida_ate": string | null,"valor": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avisado_vencimento"?: boolean,"conquista": string,"desde"?: string,"expira_em"?: string | null,"jogador_id": string,"modalidade"?: string | null,"nivel": number,"valida_ate"?: string | null,"valor": number
+                  }
+                  Update: {
+                    "avisado_vencimento"?: boolean,"conquista"?: string,"desde"?: string,"expira_em"?: string | null,"jogador_id"?: string,"modalidade"?: string | null,"nivel"?: number,"valida_ate"?: string | null,"valor"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conquistas_jogador_conquista_fkey"
+      columns: ["conquista"]
+isOneToOne: false
+      referencedRelation: "conquistas_catalogo"
+      referencedColumns: ["chave"]
+    },{
+      foreignKeyName: "conquistas_jogador_jogador_id_fkey"
+      columns: ["jogador_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conquistas_jogador_jogador_id_fkey"
+      columns: ["jogador_id"]
+isOneToOne: false
+      referencedRelation: "ranking"
+      referencedColumns: ["jogador_id"]
+    }
+                  ]
                 },"mensagens_admin": {
                   Row: {
                     "autor": string,"created_at": string,"id": string,"respondido_em": string | null,"respondido_por": string | null,"resposta": string | null,"texto": string,"tipo": string
@@ -403,11 +475,33 @@ isOneToOne: false
 "auto_confirmar_partidas":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"avaliar_conquistas":
+{ Args: { "p_hoje"?: string,"p_jogador": string,"p_notificar"?: boolean }; Returns: undefined
+                           },
+"avaliar_conquistas_posicoes":
+{ Args: { "p_hoje": string,"p_jogador": string,"p_notificar": boolean,"p_numero1": (string)[],"p_top3": (string)[] }; Returns: undefined
+                           },
+"avaliar_conquistas_todos":
+{ Args: { "p_notificar"?: boolean }; Returns: undefined
+                           },
+"calcular_conquistas":
+{ Args: { "p_hoje"?: string,"p_jogador": string,"p_ref": string }; Returns: {
+              "conquista": string,"modalidade": string,"nivel": number,"valor": number
+            }[]
+                           },
+"calcular_conquistas_refs":
+{ Args: { "p_hoje"?: string,"p_jogador": string,"p_refs": (string)[] }; Returns: {
+              "conquista": string,"nivel": number,"ref": string,"valor": number
+            }[]
+                           },
 "cancelar_sala":
 { Args: { "p_sala": string }; Returns: undefined
                            },
 "confirmar_partida":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"conquistas_unidade":
+{ Args: { "p_qtd": number,"p_unidade": string }; Returns: string
                            },
 "contestar_partida":
 { Args: { "p_id": string,"p_motivo": string }; Returns: undefined
@@ -426,6 +520,14 @@ isOneToOne: false
                            },
 "enviar_mensagem_admin":
 { Args: { "p_texto": string,"p_tipo": string }; Returns: string
+                           },
+"estado_conquistas":
+{ Args: { "p_hoje"?: string,"p_jogador": string }; Returns: {
+              "conquista": string,"expira_em": string,"nivel": number,"valida_ate": string,"valor": number
+            }[]
+                           },
+"estrear_conquistas":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "hoje":
 { Args: Record<PropertyKey, never>; Returns: string
@@ -447,6 +549,11 @@ isOneToOne: false
               "expira_em": string,"pontos": number
             }[]
                            },
+"progresso_conquistas":
+{ Args: { "p_jogador": string }; Returns: {
+              "conquista": string,"modalidade": string,"nivel": number,"proximo_limite": number,"valida_ate": string,"valor": number
+            }[]
+                           },
 "recalcular_ranking":
 { Args: { "p_modalidade": string }; Returns: undefined
                            },
@@ -461,6 +568,21 @@ isOneToOne: false
                            },
 "sala_total_vagas":
 { Args: { "p_modalidade": string }; Returns: number
+                           },
+"sequencia_atual":
+{ Args: { "p_jogador": string }; Returns: {
+              "jogou_esta_semana": boolean,"semanas": number
+            }[]
+                           },
+"validade_conquista":
+{ Args: { "p_conquista": string,"p_hoje"?: string,"p_jogador": string }; Returns: {
+              "expira_em": string,"valida_ate": string
+            }[]
+                           },
+"validades_conquistas":
+{ Args: { "p_hoje"?: string,"p_jogador": string }; Returns: {
+              "conquista": string,"expira_em": string,"valida_ate": string
+            }[]
                            },
 "validar_sets":
 { Args: { "p_sets": Json }; Returns: undefined
