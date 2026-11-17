@@ -78,7 +78,7 @@ A janela é `regras.janela_meses` da modalidade `simples` (hoje as duas são 6).
 
 - A função `avaliar_conquistas(p_jogador uuid)` (security definer) recalcula as medalhas do jogador e atualiza o retrato.
 - Ela é chamada para todos os jogadores da modalidade no fim de `recalcular_ranking`, que já é chamada em toda confirmação, cancelamento, correção, confirmação automática e mudança de regras. Os jogadores podem ser limitados aos que tiveram partida na modalidade, se o desempenho pedir (decisão do construtor).
-- Também é chamada por um cron diário, às 09:00 de São Paulo (12:00 UTC), para todos os jogadores ativos. É ele que faz as medalhas vencerem com o tempo e manda o aviso de "vai vencer".
+- Também é chamada por um cron diário, às 00:05 de São Paulo (03:05 UTC), logo depois da meia-noite, para que as medalhas vençam sem ficar defasadas de manhã, para todos os jogadores ativos. É ele que faz as medalhas vencerem com o tempo e manda o aviso de "vai vencer".
 - Administradores e jogadores inativos ficam de fora (`is_admin` ou `not ativo`), e o retrato deles fica vazio.
 
 ## Retrato (`conquistas_jogador`)

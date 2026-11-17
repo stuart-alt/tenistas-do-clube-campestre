@@ -23,7 +23,7 @@
   - estreia: `Chegaram as conquistas! Você já tem {N} medalhas. Veja no seu perfil.`
   - link de todas: `/jogadores/{jogador_id}`.
 - Avisos de vencimento: 10 dias antes de `expira_em`. Cooldown do "ganhou" em pódio/nº 1: 30 dias.
-- Cron diário: `select cron.schedule('conquistas-diarias', '0 12 * * *', 'select public.avaliar_conquistas_todos()');` (09:00 São Paulo).
+- Cron diário: `select cron.schedule('conquistas-diarias', '5 3 * * *', 'select public.avaliar_conquistas_todos()');` (00:05 São Paulo).
 - Não tocar nos containers ou portas do projeto dog-store-estoque. Banco local em 553xx. `npm run db:test` e `npm test` precisam passar.
 
 ## Review Focus

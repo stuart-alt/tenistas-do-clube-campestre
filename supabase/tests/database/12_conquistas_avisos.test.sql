@@ -1,5 +1,5 @@
 begin;
-select plan(46);
+select plan(48);
 
 create temp table u (k text primary key, id uuid);
 grant all on u to authenticated;
@@ -187,9 +187,20 @@ select is((select count(*)::int from notificacoes where tipo = 'conquistas_estre
 select is((select bool_and(avisado_vencimento) from conquistas_jogador where jogador_id = pg_temp.id('D')), true,
           'estreia: medalhas a vencer entram ja avisadas');
 
+-- definir_ativo reavalia as medalhas na hora
+select pg_temp.limpar();
+select pg_temp.p(hoje() - 1, 'A', 'B');
+select avaliar_conquistas_todos();
+select ok(exists (select 1 from conquistas_jogador where jogador_id = pg_temp.id('A')), 'definir_ativo: A tem medalha antes');
+select tests.logar_como(pg_temp.id('ADM'));
+select definir_ativo(pg_temp.id('A'), false);
+select tests.deslogar();
+select is((select count(*)::int from conquistas_jogador where jogador_id = pg_temp.id('A')), 0,
+          'definir_ativo: desativar remove as medalhas na hora');
+
 -- Cron
 select is((select count(*)::int from cron.job where jobname = 'conquistas-diarias'
-           and schedule = '0 12 * * *' and command = 'select public.avaliar_conquistas_todos()'), 1, 'cron conquistas-diarias');
+           and schedule = '5 3 * * *' and command = 'select public.avaliar_conquistas_todos()'), 1, 'cron conquistas-diarias');
 
 select * from finish();
 rollback;

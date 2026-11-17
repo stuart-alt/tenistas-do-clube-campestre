@@ -609,8 +609,50 @@ alter function public.calcular_conquistas_pares(uuid[], date[], date) set plan_c
 alter function public.estado_conquistas_varios(uuid[], date) set plan_cache_mode = force_generic_plan;
 alter function public.avaliar_conquistas_posicoes(uuid, boolean, date, jsonb, text[], text[]) set plan_cache_mode = force_generic_plan;
 
--- Cron diário: 09:00 de São Paulo (12:00 UTC) — faz as medalhas vencerem e manda o aviso de "vai vencer"
-select cron.schedule('conquistas-diarias', '0 12 * * *', 'select public.avaliar_conquistas_todos()');
+-- definir_ativo: igual à 20261116000007; ao desativar/reativar, reavalia as medalhas na hora
+create or replace function public.definir_ativo(p_jogador uuid, p_ativo boolean) returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v salas%rowtype;
+  v_nome text;
+begin
+  if auth.uid() is null or not is_admin() then
+    raise exception 'SEM_PERMISSAO';
+  end if;
+  update profiles set ativo = p_ativo where id = p_jogador;
+  if not found then
+    raise exception 'JOGADOR_NAO_ENCONTRADO';
+  end if;
+  perform avaliar_conquistas_todos();
+
+  if p_ativo then
+    return;
+  end if;
+
+  select nome into v_nome from profiles where id = p_jogador;
+  for v in
+    select s.* from salas s
+    where s.status in ('aberta', 'confirmada') and s.partida_id is null
+      and exists (select 1 from sala_vagas sv where sv.sala_id = s.id and sv.jogador_id = p_jogador)
+    order by s.id
+    for update
+  loop
+    delete from sala_vagas where sala_id = v.id and jogador_id = p_jogador;
+    if not exists (select 1 from sala_vagas where sala_id = v.id) then
+      update salas set status = 'cancelada' where id = v.id;
+      continue;
+    end if;
+    if v.status = 'confirmada' then
+      update salas set status = 'aberta' where id = v.id;
+    end if;
+    perform notificar_sala(v.id, null, 'sala_saiu', coalesce(v_nome, 'Alguém') || ' saiu da sala.');
+  end loop;
+end;
+$$;
+
+-- Cron diário: 00:05 de São Paulo (03:05 UTC) — faz as medalhas vencerem e manda o aviso de "vai vencer"
+select cron.schedule('conquistas-diarias', '5 3 * * *', 'select public.avaliar_conquistas_todos()');
 
 -- Estreia
 select public.estrear_conquistas();
