@@ -123,3 +123,12 @@ test('próprio sem partidas: sem medalhas e lista de metas', async () => {
   expect(screen.getByText('Partidas → bronze')).toBeInTheDocument()
   expect(screen.queryByText('Jogue esta semana para não quebrar a sequência')).not.toBeInTheDocument()
 })
+
+test('próprio: dica da sequência aparece também no nível máximo (sem meta)', async () => {
+  dados.sequencia = [{ semanas: 12, jogou_esta_semana: false }]
+  dados.progresso = [{ conquista: 'sequencia', modalidade: null, nivel: 4, valor: 12, proximo_limite: null, valida_ate: '2027-03-12' }]
+  dados.retrato = [linha('sequencia', 4, 12, '2027-03-12')]
+  montar(true)
+  expect(await screen.findByText('Jogue esta semana para não quebrar a sequência')).toBeInTheDocument()
+  expect(screen.getAllByText('Jogue esta semana para não quebrar a sequência')).toHaveLength(1)
+})

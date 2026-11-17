@@ -65,6 +65,7 @@ export default function Conquistas({ jogadorId, proprio }: { jogadorId: string; 
     })
     .sort((a, b) => a.cat.ordem - b.cat.ordem)
 
+  const temMetaSequencia = metas.some(({ p }) => p.conquista === 'sequencia')
   const dicaSequencia =
     proprio && !!sequencia && sequencia.semanas > 0 && !sequencia.jogou_esta_semana
 
@@ -90,6 +91,9 @@ export default function Conquistas({ jogadorId, proprio }: { jogadorId: string; 
                 <span className="ml-auto text-sm text-gray-600">{formatarValidade(m.valida_ate)}</span>
               </div>
               <p className="text-xs text-gray-600">{cat.descricao}</p>
+              {m.conquista === 'sequencia' && dicaSequencia && !temMetaSequencia && (
+                <p className="text-sm text-gray-700">Jogue esta semana para não quebrar a sequência</p>
+              )}
             </li>
           )
         })}
