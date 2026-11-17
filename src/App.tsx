@@ -18,6 +18,8 @@ import NovaSalaPage from './salas/NovaSalaPage'
 import SalaPage from './salas/SalaPage'
 import NotificacoesPage from './notificacoes/NotificacoesPage'
 import AvisosPage from './avisos/AvisosPage'
+import DicasPage from './dicas/DicasPage'
+import DicaPage from './dicas/DicaPage'
 import ContatoPage from './contato/ContatoPage'
 
 function SomenteAdmin() {
@@ -52,6 +54,8 @@ export default function App() {
               <Route path="/partidas/nova" element={<LancarPartidaPage />} />
               <Route path="/notificacoes" element={<NotificacoesPage />} />
               <Route path="/avisos" element={<AvisosPage />} />
+              <Route path="/dicas" element={<DicasPage />} />
+              <Route path="/dicas/:pagina" element={<DicaPage />} />
               <Route path="/contato" element={<ContatoPage />} />
               <Route element={<SomenteAdmin />}>
                 <Route path="/admin" element={<AdminPage />} />

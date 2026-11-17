@@ -8,7 +8,7 @@ const ABAS = [
   { para: '/jogadores', rotulo: 'Jogadores' },
   { para: '/salas', rotulo: 'Salas' },
   { para: '/partidas', rotulo: 'Partidas' },
-  { para: '/avisos', rotulo: 'Avisos' },
+  { para: '/dicas', rotulo: 'Dicas' },
 ]
 
 export default function Layout() {
@@ -22,6 +22,9 @@ export default function Layout() {
             Admin
           </Link>
         )}
+        <Link to="/avisos" aria-label="Avisos" className="text-xl leading-none">
+          <span aria-hidden="true">📢</span>
+        </Link>
         <Sininho />
         <Link to="/perfil" aria-label="Meu perfil">
           {perfil?.foto_url ? (

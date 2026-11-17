@@ -12,6 +12,16 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg', 'apple-touch-icon.png'],
+      workbox: {
+        globIgnores: ['**/dicas/**'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/dicas\/pagina-/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'dicas', expiration: { maxEntries: 60 } },
+          },
+        ],
+      },
       manifest: {
         name: 'Tenistas do Campestre',
         short_name: 'Tenistas',
