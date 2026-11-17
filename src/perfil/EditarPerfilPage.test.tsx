@@ -1,10 +1,19 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import EditarPerfilPage from './EditarPerfilPage'
 
 const eq = vi.hoisted(() => vi.fn())
 const update = vi.hoisted(() => vi.fn())
+const recarregarPerfil = vi.hoisted(() => vi.fn())
+vi.mock('./FotoUpload', () => ({
+  default: ({ onEnviada }: { onEnviada: (url: string) => void }) => (
+    <button type="button" onClick={() => onEnviada('https://x/nova.jpg')}>
+      Usar foto
+    </button>
+  ),
+}))
 vi.mock('../lib/supabase', () => ({
   supabase: {
     from: () => ({
@@ -19,21 +28,26 @@ let admin = false
 vi.mock('../auth/AuthProvider', () => ({
   useAuth: () => ({
     perfil: { id: 'eu-123', is_admin: admin, nome: 'Ana', telefone: '11987654321', data_nascimento: '1990-05-20', disponibilidade: [] },
-    recarregarPerfil: async () => {},
+    recarregarPerfil,
   }),
 }))
 
 function montar() {
+  const qc = new QueryClient()
   render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <EditarPerfilPage />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <EditarPerfilPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
+  return qc
 }
 
 beforeEach(() => {
   admin = false
   update.mockReset()
+  recarregarPerfil.mockReset()
   eq.mockReset()
   eq.mockResolvedValue({ error: null })
 })
@@ -71,4 +85,24 @@ test('administrador não vê link Fale com o administrador', () => {
   admin = true
   montar()
   expect(screen.queryByRole('link', { name: 'Fale com o administrador' })).toBeNull()
+})
+
+test('foto enviada é gravada na hora, sem apertar Salvar', async () => {
+  const qc = montar()
+  const inv = vi.spyOn(qc, 'invalidateQueries')
+  await userEvent.click(screen.getByRole('button', { name: 'Usar foto' }))
+  expect(update).toHaveBeenCalledWith({ foto_url: 'https://x/nova.jpg' })
+  expect(eq).toHaveBeenCalledWith('id', 'eu-123')
+  expect(recarregarPerfil).toHaveBeenCalled()
+  expect(inv).toHaveBeenCalledWith({ queryKey: ['perfil', 'eu-123'] })
+  expect(inv).toHaveBeenCalledWith({ queryKey: ['card-foto'] })
+  expect(await screen.findByRole('status')).toHaveTextContent('Foto atualizada.')
+})
+
+test('erro ao gravar a foto mostra mensagem e não recarrega o perfil', async () => {
+  eq.mockResolvedValue({ error: { message: 'falhou' } })
+  montar()
+  await userEvent.click(screen.getByRole('button', { name: 'Usar foto' }))
+  expect(await screen.findByRole('alert')).toBeInTheDocument()
+  expect(recarregarPerfil).not.toHaveBeenCalled()
 })

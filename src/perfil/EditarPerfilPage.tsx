@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { traduzirErro } from '../lib/erros'
@@ -21,6 +22,7 @@ export const HABILIDADES = [
 
 export default function EditarPerfilPage() {
   const { perfil, recarregarPerfil } = useAuth()
+  const qc = useQueryClient()
   const [f, setF] = useState(() => ({
     nome: perfil?.nome ?? '',
     telefone: perfil?.telefone ?? '',
@@ -40,6 +42,20 @@ export default function EditarPerfilPage() {
   const [salvando, setSalvando] = useState(false)
 
   if (!perfil) return null
+
+  async function fotoEnviada(url: string) {
+    setMsg(null)
+    const { error } = await supabase.from('profiles').update({ foto_url: url }).eq('id', perfil!.id)
+    if (error) {
+      setMsg({ ok: false, texto: traduzirErro(error) })
+      return
+    }
+    setF((a) => ({ ...a, foto_url: url }))
+    await recarregarPerfil()
+    await qc.invalidateQueries({ queryKey: ['perfil', perfil!.id] })
+    await qc.invalidateQueries({ queryKey: ['card-foto'] })
+    setMsg({ ok: true, texto: 'Foto atualizada.' })
+  }
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
@@ -70,7 +86,7 @@ export default function EditarPerfilPage() {
       </div>
       <div className="flex items-center gap-4">
         <Avatar url={f.foto_url} nome={f.nome} tamanho="h-20 w-20" />
-        <FotoUpload onEnviada={(url) => setF((a) => ({ ...a, foto_url: url }))} />
+        <FotoUpload onEnviada={fotoEnviada} />
       </div>
       <Campo rotulo="Nome" required value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} />
       <Campo
