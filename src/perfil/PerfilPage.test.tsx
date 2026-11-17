@@ -1,0 +1,82 @@
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import PerfilPage from './PerfilPage'
+
+const exportar = vi.hoisted(() => ({
+  svgParaPng: vi.fn(),
+  fotoComoDataUrl: vi.fn(),
+  compartilharOuBaixar: vi.fn(),
+}))
+vi.mock('./exportarCard', () => exportar)
+
+const jogador = {
+  id: 'eu-1', nome: 'Ana Lima', categoria: 'B', genero: 'feminino', foto_url: null, telefone: '11987654321',
+  data_nascimento: '1990-05-20', disponibilidade: [],
+  forehand: 3, backhand: 3, saque: 3, voleio: 3, velocidade: 3, resistencia: 3,
+}
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    rpc: async () => ({ data: [], error: null }),
+    from: (tabela: string) => {
+      const res = {
+        profiles: { data: jogador, error: null },
+        ranking: { data: [{ modalidade: 'simples', posicao: 2, pontos: 80 }], error: null },
+      }[tabela] ?? { data: [], error: null }
+      const q: Record<string, unknown> = {}
+      for (const m of ['select', 'eq', 'order', 'limit']) q[m] = () => q
+      q.maybeSingle = async () => res
+      q.then = (ok: (v: unknown) => unknown) => Promise.resolve(res).then(ok)
+      return q
+    },
+  },
+}))
+let eu = { id: 'eu-1', is_admin: false }
+vi.mock('../auth/AuthProvider', () => ({ useAuth: () => ({ perfil: eu }) }))
+
+function montar() {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={['/jogadores/eu-1']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes><Route path="/jogadores/:id" element={<PerfilPage />} /></Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+beforeEach(() => {
+  eu = { id: 'eu-1', is_admin: false }
+  Object.values(exportar).forEach((f) => f.mockReset())
+  exportar.fotoComoDataUrl.mockResolvedValue(undefined)
+  exportar.svgParaPng.mockResolvedValue(new Blob(['x']))
+  exportar.compartilharOuBaixar.mockResolvedValue(undefined)
+})
+
+test('perfil próprio mostra o card e exporta', async () => {
+  montar()
+  const botao = await screen.findByRole('button', { name: 'Exportar card' })
+  await userEvent.click(botao)
+  await vi.waitFor(() => expect(exportar.compartilharOuBaixar).toHaveBeenCalledWith(expect.any(Blob), 'card-ana.png'))
+  expect(exportar.svgParaPng).toHaveBeenCalled()
+})
+
+test('erro na exportação mostra mensagem amigável', async () => {
+  exportar.svgParaPng.mockRejectedValue(new Error('x'))
+  montar()
+  await userEvent.click(await screen.findByRole('button', { name: 'Exportar card' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível gerar a imagem.')
+})
+
+test('perfil de outro jogador não mostra o card', async () => {
+  eu = { id: 'outro', is_admin: false }
+  montar()
+  await screen.findByText('Ana Lima')
+  expect(screen.queryByRole('button', { name: 'Exportar card' })).not.toBeInTheDocument()
+})
+test('admin nao ve o card', async () => {
+  eu = { id: 'eu-1', is_admin: true }
+  montar()
+  await screen.findByText('Ana Lima')
+  expect(screen.queryByRole('button', { name: 'Exportar card' })).not.toBeInTheDocument()
+})

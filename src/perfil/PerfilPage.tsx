@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -8,6 +9,8 @@ import GradeDisponibilidade from './GradeDisponibilidade'
 import Estrelas from './Estrelas'
 import Avatar from './Avatar'
 import { HABILIDADES } from './EditarPerfilPage'
+import CardJogador, { type PerfilCard } from './CardJogador'
+import { compartilharOuBaixar, fotoComoDataUrl, svgParaPng } from './exportarCard'
 
 export function BotaoWhatsApp({ telefone }: { telefone: string }) {
   const link = linkWhatsApp(telefone)
@@ -132,6 +135,65 @@ function Expirando({ jogadorId }: { jogadorId: string }) {
   )
 }
 
+function MeuCard({
+  perfil,
+  ranking,
+}: {
+  perfil: PerfilCard
+  ranking: { modalidade: string; posicao: number; pontos: number }[]
+}) {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [ocupado, setOcupado] = useState(false)
+  const [erro, setErro] = useState(false)
+
+  async function exportar() {
+    if (!svgRef.current) return
+    setOcupado(true)
+    setErro(false)
+    try {
+      // A foto é embutida como data URL no clone, senão o PNG sairia sem ela.
+      const foto = perfil.foto_url ? await fotoComoDataUrl(perfil.foto_url) : undefined
+      const clone = svgRef.current.cloneNode(true) as SVGSVGElement
+      if (foto) clone.querySelector('image')?.setAttribute('href', foto)
+      else clone.querySelector('image')?.remove()
+      const png = await svgParaPng(clone)
+      const primeiro = perfil.nome
+        .trim()
+        .split(/\s+/)[0]
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+      await compartilharOuBaixar(png, `card-${primeiro}.png`)
+    } catch {
+      setErro(true)
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  return (
+    <section className="space-y-2">
+      <h3 className="font-semibold">Meu card</h3>
+      <div className="mx-auto w-full max-w-[320px]">
+        <CardJogador ref={svgRef} perfil={perfil} ranking={ranking} />
+      </div>
+      <button
+        type="button"
+        onClick={exportar}
+        disabled={ocupado}
+        className="rounded bg-green-800 px-4 py-2 font-semibold text-white disabled:opacity-60"
+      >
+        {ocupado ? 'Gerando...' : 'Exportar card'}
+      </button>
+      {erro && (
+        <p role="alert" className="text-sm text-red-700">
+          Não foi possível gerar a imagem.
+        </p>
+      )}
+    </section>
+  )
+}
+
 export default function PerfilPage() {
   const { id } = useParams()
   const { perfil: eu } = useAuth()
@@ -163,6 +225,9 @@ export default function PerfilPage() {
   }
   const pontos = (m: string) => rank(m)?.pontos ?? 0
   const proprio = eu?.id === jogador.id
+  const linhasCard = (posicoes ?? []).flatMap((r) =>
+    r.posicao != null ? [{ modalidade: r.modalidade, posicao: r.posicao, pontos: r.pontos ?? 0 }] : [],
+  )
 
   return (
     <div className="mx-auto max-w-md space-y-4">
@@ -196,6 +261,7 @@ export default function PerfilPage() {
           <Estrelas key={campo} rotulo={rotulo} valor={jogador[campo]} />
         ))}
       </section>
+      {proprio && !eu?.is_admin && <MeuCard perfil={jogador} ranking={linhasCard} />}
       <section>
         <h3 className="mb-1 font-semibold">Disponibilidade</h3>
         <GradeDisponibilidade valor={jogador.disponibilidade} />
