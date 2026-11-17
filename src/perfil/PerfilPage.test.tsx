@@ -114,6 +114,24 @@ test('perfil de admin aberto direto não mostra card nem estrelas', async () => 
   }
 })
 
+test('perfil de jogador mostra o título Conquistas', async () => {
+  montar()
+  expect(await screen.findByRole('heading', { name: 'Conquistas' })).toBeInTheDocument()
+})
+
+test('perfil de admin não mostra Conquistas', async () => {
+  eu = { id: 'eu-1', is_admin: true }
+  jogador.is_admin = true
+  try {
+    montar()
+    await screen.findByText('Ana Lima')
+    await screen.findByText('Nenhuma partida confirmada.')
+    expect(screen.queryByRole('heading', { name: 'Conquistas' })).not.toBeInTheDocument()
+  } finally {
+    jogador.is_admin = false
+  }
+})
+
 test('foto que falha ao carregar exporta o card com iniciais', async () => {
   jogador.foto_url = 'https://exemplo.test/foto.jpg'
   exportar.fotoComoDataUrl.mockResolvedValue(undefined)

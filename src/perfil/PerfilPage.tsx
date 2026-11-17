@@ -8,6 +8,7 @@ import { formatarData, hojeLocal, idadeEm } from '../lib/datas'
 import GradeDisponibilidade from './GradeDisponibilidade'
 import Avatar from './Avatar'
 import CardJogador, { type PerfilCard } from './CardJogador'
+import Conquistas from './SecaoConquistas'
 import NaoContou from '../partidas/NaoContou'
 import { compartilharOuBaixar, fotoComoDataUrl, svgParaPng } from './exportarCard'
 
@@ -265,17 +266,21 @@ export default function PerfilPage() {
         Pontos: Simples {pontos('simples')} · Duplas {pontos('duplas')}
       </p>
       {proprio && <Expirando jogadorId={jogador.id} />}
-      {!jogador.is_admin &&
-        (proprio ? (
-          <MeuCard perfil={jogador} ranking={linhasCard} />
-        ) : (
-          <section className="space-y-2">
-            <h3 className="font-semibold">Card</h3>
-            <div className="mx-auto w-full max-w-[320px]">
-              <CardJogador perfil={jogador} ranking={linhasCard} />
-            </div>
-          </section>
-        ))}
+      {!jogador.is_admin && (
+        <>
+          {proprio ? (
+            <MeuCard perfil={jogador} ranking={linhasCard} />
+          ) : (
+            <section className="space-y-2">
+              <h3 className="font-semibold">Card</h3>
+              <div className="mx-auto w-full max-w-[320px]">
+                <CardJogador perfil={jogador} ranking={linhasCard} />
+              </div>
+            </section>
+          )}
+          <Conquistas jogadorId={jogador.id} proprio={proprio} />
+        </>
+      )}
       <section>
         <h3 className="mb-1 font-semibold">Disponibilidade</h3>
         <GradeDisponibilidade valor={jogador.disponibilidade} />
