@@ -14,6 +14,7 @@ const regra = {
   bonus_pct: '0.2',
   bonus_teto: 50,
   janela_meses: 6,
+  max_partidas_semana: 2,
 }
 
 test('mostra regras e salva após confirmar', async () => {
@@ -30,9 +31,12 @@ test('mostra regras e salva após confirmar', async () => {
   expect(screen.getByLabelText('Bônus (%)')).toHaveValue(20)
   expect(screen.getByLabelText('Teto do bônus')).toHaveValue(50)
   expect(screen.getByLabelText('Janela (meses)')).toHaveValue(6)
+  expect(screen.getByLabelText('Partidas por semana que contam no ranking (0 = sem limite)')).toHaveValue(2)
 
   await userEvent.clear(screen.getByLabelText('Pontos por vitória'))
   await userEvent.type(screen.getByLabelText('Pontos por vitória'), '100')
+  await userEvent.clear(screen.getByLabelText('Partidas por semana que contam no ranking (0 = sem limite)'))
+  await userEvent.type(screen.getByLabelText('Partidas por semana que contam no ranking (0 = sem limite)'), '3')
   await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
 
   expect(confirmar).toHaveBeenCalledWith('Isso vai recalcular todo o ranking de simples. Continuar?')
@@ -44,5 +48,6 @@ test('mostra regras e salva após confirmar', async () => {
     p_bonus_pct: 0.2,
     p_bonus_teto: 50,
     p_janela_meses: 6,
+    p_max_partidas_semana: 3,
   })
 })

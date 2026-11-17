@@ -12,6 +12,7 @@ export type Regra = {
   bonus_pct: number | string
   bonus_teto: number | string
   janela_meses: number | string
+  max_partidas_semana: number | string
 }
 
 export default function RegrasForm({ regra }: { regra: Regra }) {
@@ -23,6 +24,7 @@ export default function RegrasForm({ regra }: { regra: Regra }) {
     bonus_pct: String(Math.round(Number(regra.bonus_pct) * 100)),
     bonus_teto: String(Number(regra.bonus_teto)),
     janela_meses: String(Number(regra.janela_meses)),
+    max_partidas_semana: String(Number(regra.max_partidas_semana)),
   })
   const [msg, setMsg] = useState('')
   const [erro, setErro] = useState('')
@@ -38,6 +40,7 @@ export default function RegrasForm({ regra }: { regra: Regra }) {
         p_bonus_pct: Math.round(Number(v.bonus_pct)) / 100,
         p_bonus_teto: Number(v.bonus_teto),
         p_janela_meses: Number(v.janela_meses),
+        p_max_partidas_semana: Number(v.max_partidas_semana),
       })
       if (error) throw error
     },
@@ -79,6 +82,7 @@ export default function RegrasForm({ regra }: { regra: Regra }) {
       {campo('Bônus (%)', 'bonus_pct')}
       {campo('Teto do bônus', 'bonus_teto')}
       {campo('Janela (meses)', 'janela_meses')}
+      {campo('Partidas por semana que contam no ranking (0 = sem limite)', 'max_partidas_semana')}
       {erro && (
         <p role="alert" className="text-sm text-red-700">
           {erro}

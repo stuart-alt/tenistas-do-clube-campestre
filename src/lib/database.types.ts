@@ -217,14 +217,14 @@ isOneToOne: false
                   ]
                 },"pontos_partida": {
                   Row: {
-                    "bonus": number,"data_jogo": string,"jogador_id": string,"modalidade": string,"partida_id": string,"pontos": number,"vitoria": boolean
+                    "bonus": number,"conta": boolean,"data_jogo": string,"jogador_id": string,"modalidade": string,"partida_id": string,"pontos": number,"vitoria": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "bonus": number,"data_jogo": string,"jogador_id": string,"modalidade": string,"partida_id": string,"pontos": number,"vitoria": boolean
+                    "bonus": number,"conta"?: boolean,"data_jogo": string,"jogador_id": string,"modalidade": string,"partida_id": string,"pontos": number,"vitoria": boolean
                   }
                   Update: {
-                    "bonus"?: number,"data_jogo"?: string,"jogador_id"?: string,"modalidade"?: string,"partida_id"?: string,"pontos"?: number,"vitoria"?: boolean
+                    "bonus"?: number,"conta"?: boolean,"data_jogo"?: string,"jogador_id"?: string,"modalidade"?: string,"partida_id"?: string,"pontos"?: number,"vitoria"?: boolean
                   }
                   Relationships: [
                     {
@@ -263,14 +263,14 @@ isOneToOne: false
                   ]
                 },"regras": {
                   Row: {
-                    "bonus_pct": number,"bonus_teto": number,"janela_meses": number,"modalidade": string,"pts_game": number,"pts_set": number,"pts_vitoria": number
+                    "bonus_pct": number,"bonus_teto": number,"janela_meses": number,"max_partidas_semana": number,"modalidade": string,"pts_game": number,"pts_set": number,"pts_vitoria": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "bonus_pct": number,"bonus_teto": number,"janela_meses": number,"modalidade": string,"pts_game": number,"pts_set": number,"pts_vitoria": number
+                    "bonus_pct": number,"bonus_teto": number,"janela_meses": number,"max_partidas_semana"?: number,"modalidade": string,"pts_game": number,"pts_set": number,"pts_vitoria": number
                   }
                   Update: {
-                    "bonus_pct"?: number,"bonus_teto"?: number,"janela_meses"?: number,"modalidade"?: string,"pts_game"?: number,"pts_set"?: number,"pts_vitoria"?: number
+                    "bonus_pct"?: number,"bonus_teto"?: number,"janela_meses"?: number,"max_partidas_semana"?: number,"modalidade"?: string,"pts_game"?: number,"pts_set"?: number,"pts_vitoria"?: number
                   }
                   Relationships: [
                     
@@ -398,7 +398,7 @@ isOneToOne: false
 { Args: { "p_data_jogo": string,"p_id": string,"p_sets": Json }; Returns: undefined
                            },
 "atualizar_regras":
-{ Args: { "p_bonus_pct": number,"p_bonus_teto": number,"p_janela_meses": number,"p_modalidade": string,"p_pts_game": number,"p_pts_set": number,"p_pts_vitoria": number }; Returns: undefined
+{ Args: { "p_bonus_pct": number,"p_bonus_teto": number,"p_janela_meses": number,"p_max_partidas_semana": number,"p_modalidade": string,"p_pts_game": number,"p_pts_set": number,"p_pts_vitoria": number }; Returns: undefined
                            },
 "auto_confirmar_partidas":
 { Args: Record<PropertyKey, never>; Returns: number

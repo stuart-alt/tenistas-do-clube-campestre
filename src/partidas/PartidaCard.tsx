@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { formatarData } from '../lib/datas'
+import NaoContou from './NaoContou'
 
 export type PartidaDetalhe = {
   id: string
@@ -15,7 +16,7 @@ export type PartidaDetalhe = {
     profiles: { nome: string; foto_url: string | null } | null
   }[]
   partida_sets: { ordem: number; games_lado1: number; games_lado2: number; super_tiebreak: boolean }[]
-  pontos_partida: { jogador_id: string; vitoria: boolean; pontos: number; bonus: number }[]
+  pontos_partida: { jogador_id: string; vitoria: boolean; pontos: number; bonus: number; conta?: boolean }[]
 }
 
 const ROTULO_STATUS: Record<string, string> = {
@@ -65,6 +66,7 @@ export default function PartidaCard({
           {meus.vitoria ? 'Vitória' : 'Derrota'}: +{meus.pontos + meus.bonus} pts
         </p>
       )}
+      {meus?.conta === false && <NaoContou modalidade={partida.modalidade} />}
       {partida.status === 'contestada' && partida.motivo_contestacao && (
         <p className="text-sm text-gray-700">Motivo: {partida.motivo_contestacao}</p>
       )}

@@ -10,6 +10,7 @@ import Estrelas from './Estrelas'
 import Avatar from './Avatar'
 import { HABILIDADES } from './EditarPerfilPage'
 import CardJogador, { type PerfilCard } from './CardJogador'
+import NaoContou from '../partidas/NaoContou'
 import { compartilharOuBaixar, fotoComoDataUrl, svgParaPng } from './exportarCard'
 
 export function BotaoWhatsApp({ telefone }: { telefone: string }) {
@@ -29,6 +30,7 @@ export function BotaoWhatsApp({ telefone }: { telefone: string }) {
 
 type PartidaLinha = {
   vitoria: boolean
+  conta: boolean
   partidas: {
     id: string
     modalidade: string
@@ -45,7 +47,7 @@ function UltimasPartidas({ jogadorId }: { jogadorId: string }) {
       const { data, error } = await supabase
         .from('pontos_partida')
         .select(
-          'vitoria, partidas!inner(id, modalidade, data_jogo, status, partida_jogadores(jogador_id, lado, profiles(nome)), partida_sets(ordem, games_lado1, games_lado2, super_tiebreak))',
+          'vitoria, conta, partidas!inner(id, modalidade, data_jogo, status, partida_jogadores(jogador_id, lado, profiles(nome)), partida_sets(ordem, games_lado1, games_lado2, super_tiebreak))',
         )
         .eq('jogador_id', jogadorId)
         .eq('partidas.status', 'confirmada')
@@ -61,7 +63,7 @@ function UltimasPartidas({ jogadorId }: { jogadorId: string }) {
       <h3 className="mb-2 font-semibold">Últimas partidas</h3>
       {data?.length === 0 && <p className="text-sm text-gray-600">Nenhuma partida confirmada.</p>}
       <ul className="space-y-2">
-        {data?.map(({ vitoria, partidas: p }) => {
+        {data?.map(({ vitoria, conta, partidas: p }) => {
           const meuLado = p.partida_jogadores.find((x) => x.jogador_id === jogadorId)?.lado
           const adversarios = p.partida_jogadores
             .filter((x) => x.lado !== meuLado)
@@ -87,6 +89,7 @@ function UltimasPartidas({ jogadorId }: { jogadorId: string }) {
                   {formatarData(p.data_jogo)} · vs {adversarios}
                 </span>
                 <span className="text-gray-600">{placar}</span>
+                {conta === false && <NaoContou modalidade={p.modalidade} />}
               </span>
             </li>
           )

@@ -47,15 +47,15 @@ select recalcular_ranking('duplas');
 select is(pg_temp.pts('p', 'A'), 85, 'vitória vale 85 com regra padrão');
 
 select tests.logar_como(pg_temp.id('A'));
-select throws_ok($$select atualizar_regras('simples', 100, 10, 1, 0.20, 50, 6)$$, 'P0001', 'SEM_PERMISSAO',
+select throws_ok($$select atualizar_regras('simples', 100, 10, 1, 0.20, 50, 6, 2)$$, 'P0001', 'SEM_PERMISSAO',
   'Ana não altera regras');
 select tests.logar_como(pg_temp.id('ADM'));
-select throws_ok($$select atualizar_regras('simples', 100, 10, 1, 0.20, 50, 0)$$, 'P0001', 'REGRA_INVALIDA',
+select throws_ok($$select atualizar_regras('simples', 100, 10, 1, 0.20, 50, 0, 2)$$, 'P0001', 'REGRA_INVALIDA',
   'janela 0 inválida');
-select throws_ok($$select atualizar_regras('simples', -1, 10, 1, 0.20, 50, 6)$$, 'P0001', 'REGRA_INVALIDA',
+select throws_ok($$select atualizar_regras('simples', -1, 10, 1, 0.20, 50, 6, 2)$$, 'P0001', 'REGRA_INVALIDA',
   'valor negativo inválido');
 select is(pg_temp.rk('A', 'duplas'), 82, 'ranking de duplas antes (50+20+12)');
-select atualizar_regras('simples', 100, 10, 1, 0.20, 50, 6);
+select atualizar_regras('simples', 100, 10, 1, 0.20, 50, 6, 2);
 select tests.deslogar();
 select is(pg_temp.pts('p', 'A'), 135, 'vitória vale 100: partida passa a dar 135');
 select is(pg_temp.rk('A', 'duplas'), 82, 'ranking de duplas inalterado');

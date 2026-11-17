@@ -8,7 +8,7 @@ import { traduzirErro } from '../lib/erros'
 import PartidaCard, { type PartidaDetalhe } from './PartidaCard'
 
 const SELECT =
-  '*, partida_jogadores(jogador_id, lado, profiles(nome, foto_url)), partida_sets(ordem, games_lado1, games_lado2, super_tiebreak), pontos_partida(jogador_id, vitoria, pontos, bonus)'
+  '*, partida_jogadores(jogador_id, lado, profiles(nome, foto_url)), partida_sets(ordem, games_lado1, games_lado2, super_tiebreak), pontos_partida(jogador_id, vitoria, pontos, bonus, conta)'
 
 const ladoDe = (p: PartidaDetalhe, id: string) => p.partida_jogadores.find((j) => j.jogador_id === id)?.lado
 
