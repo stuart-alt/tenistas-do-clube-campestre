@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { detectarPlataforma, estaInstalado } from '../lib/plataforma'
+import {
+  aoMudarEventoInstalacao,
+  limparEventoInstalacao,
+  obterEventoInstalacao,
+} from '../lib/instalacao'
 
 const CHAVE = 'instalar-banner-dispensado'
-
-type EventoInstalacao = Event & { prompt(): Promise<void> }
 
 function jaDispensado(): boolean {
   try {
@@ -15,21 +18,19 @@ function jaDispensado(): boolean {
 
 export default function InstalarBanner() {
   const [dispensado, setDispensado] = useState(jaDispensado)
-  const [evento, setEvento] = useState<EventoInstalacao | null>(null)
-  const plataforma = detectarPlataforma(navigator.userAgent)
+  const [esperou, setEsperou] = useState(false)
+  const evento = useSyncExternalStore(aoMudarEventoInstalacao, obterEventoInstalacao)
+  const plataforma = detectarPlataforma(navigator.userAgent, navigator.maxTouchPoints)
   const safariIos = !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent)
 
   useEffect(() => {
-    const aoReceber = (e: Event) => {
-      e.preventDefault()
-      setEvento(e as EventoInstalacao)
-    }
-    window.addEventListener('beforeinstallprompt', aoReceber)
-    return () => window.removeEventListener('beforeinstallprompt', aoReceber)
-  }, [])
+    if (plataforma !== 'android' || evento) return
+    const t = setTimeout(() => setEsperou(true), 4000)
+    return () => clearTimeout(t)
+  }, [plataforma, evento])
 
   if (dispensado || estaInstalado()) return null
-  if (plataforma === 'outro' || (plataforma === 'android' && !evento)) return null
+  if (!evento && (plataforma === 'outro' || (plataforma === 'android' && !esperou))) return null
 
   function dispensar() {
     try {
@@ -40,10 +41,23 @@ export default function InstalarBanner() {
     setDispensado(true)
   }
 
+  async function instalar() {
+    if (!evento) return
+    try {
+      await evento.prompt()
+      await evento.userChoice
+    } finally {
+      // o evento só vale uma vez; esconde o aviso nesta visita
+      limparEventoInstalacao()
+    }
+  }
+
   return (
     <div className="flex items-center gap-3 bg-green-50 px-4 py-3 text-sm">
       <div className="flex-1">
-        {plataforma === 'ios' && !safariIos ? (
+        {evento ? (
+          <p>Instale o app</p>
+        ) : plataforma === 'ios' && !safariIos ? (
           <p>Para instalar, abra este link no Safari.</p>
         ) : plataforma === 'ios' ? (
           <p>
@@ -51,14 +65,17 @@ export default function InstalarBanner() {
             <strong>Adicionar à Tela de Início</strong>.
           </p>
         ) : (
-          <p>Instale o app no seu celular.</p>
+          <p>
+            Para instalar: abra o menu do navegador (⋮ ou ☰) e escolha "Instalar app" ou "Adicionar à
+            tela inicial".
+          </p>
         )}
       </div>
-      {plataforma === 'android' && evento && (
+      {evento && (
         <button
           type="button"
           className="rounded bg-green-800 px-3 py-1 font-semibold text-white"
-          onClick={() => void evento.prompt()}
+          onClick={() => void instalar()}
         >
           Instalar app
         </button>
