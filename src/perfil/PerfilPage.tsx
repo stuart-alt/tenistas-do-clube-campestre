@@ -6,9 +6,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { linkWhatsApp } from '../lib/whatsapp'
 import { formatarData, hojeLocal, idadeEm } from '../lib/datas'
 import GradeDisponibilidade from './GradeDisponibilidade'
-import Estrelas from './Estrelas'
 import Avatar from './Avatar'
-import { HABILIDADES } from './EditarPerfilPage'
 import CardJogador, { type PerfilCard } from './CardJogador'
 import NaoContou from '../partidas/NaoContou'
 import { compartilharOuBaixar, fotoComoDataUrl, svgParaPng } from './exportarCard'
@@ -267,13 +265,17 @@ export default function PerfilPage() {
         Pontos: Simples {pontos('simples')} · Duplas {pontos('duplas')}
       </p>
       {proprio && <Expirando jogadorId={jogador.id} />}
-      <section className="space-y-1">
-        <h3 className="font-semibold">Habilidades</h3>
-        {HABILIDADES.map(([campo, rotulo]) => (
-          <Estrelas key={campo} rotulo={rotulo} valor={jogador[campo]} />
+      {!jogador.is_admin &&
+        (proprio ? (
+          <MeuCard perfil={jogador} ranking={linhasCard} />
+        ) : (
+          <section className="space-y-2">
+            <h3 className="font-semibold">Card</h3>
+            <div className="mx-auto w-full max-w-[320px]">
+              <CardJogador perfil={jogador} ranking={linhasCard} />
+            </div>
+          </section>
         ))}
-      </section>
-      {proprio && !eu?.is_admin && <MeuCard perfil={jogador} ranking={linhasCard} />}
       <section>
         <h3 className="mb-1 font-semibold">Disponibilidade</h3>
         <GradeDisponibilidade valor={jogador.disponibilidade} />

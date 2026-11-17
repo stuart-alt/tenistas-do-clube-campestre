@@ -13,7 +13,7 @@ vi.mock('./exportarCard', () => exportar)
 
 const jogador = {
   id: 'eu-1', nome: 'Ana Lima', categoria: 'B', genero: 'feminino', foto_url: null as string | null, telefone: '11987654321',
-  data_nascimento: '1990-05-20', disponibilidade: [],
+  data_nascimento: '1990-05-20', disponibilidade: [], is_admin: false,
   forehand: 3, backhand: 3, saque: 3, voleio: 3, velocidade: 3, resistencia: 3,
 }
 vi.mock('../lib/supabase', () => ({
@@ -73,17 +73,45 @@ test('erro na exportação mostra mensagem amigável', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível gerar a imagem.')
 })
 
-test('perfil de outro jogador não mostra o card', async () => {
+function semEstrelas() {
+  expect(screen.queryByText('Habilidades')).not.toBeInTheDocument()
+  expect(screen.queryByRole('group', { name: 'Forehand' })).not.toBeInTheDocument()
+  expect(screen.queryByText('★')).not.toBeInTheDocument()
+}
+
+test('perfil próprio mostra o card e não mostra estrelas', async () => {
+  montar()
+  expect(await screen.findByRole('img', { name: 'Card de Ana Lima' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Exportar card' })).toBeInTheDocument()
+  expect(screen.getAllByRole('img', { name: /^Card de/ })).toHaveLength(1)
+  semEstrelas()
+})
+
+test('perfil de outro jogador mostra o card sem exportar e sem estrelas', async () => {
   eu = { id: 'outro', is_admin: false }
   montar()
-  await screen.findByText('Ana Lima')
+  const card = await screen.findByRole('img', { name: 'Card de Ana Lima' })
+  expect(card).toHaveTextContent('CAT B')
+  for (const r of ['FOR', 'BAC', 'SAQ', 'VOL', 'VEL', 'RES']) expect(card).toHaveTextContent(r)
+  expect(screen.getByRole('heading', { name: 'Card' })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Exportar card' })).not.toBeInTheDocument()
+  expect(screen.getAllByRole('img', { name: /^Card de/ })).toHaveLength(1)
+  semEstrelas()
 })
-test('admin nao ve o card', async () => {
+
+test('perfil de admin aberto direto não mostra card nem estrelas', async () => {
   eu = { id: 'eu-1', is_admin: true }
-  montar()
-  await screen.findByText('Ana Lima')
-  expect(screen.queryByRole('button', { name: 'Exportar card' })).not.toBeInTheDocument()
+  jogador.is_admin = true
+  try {
+    montar()
+    await screen.findByText('Ana Lima')
+    expect(screen.queryByRole('img', { name: /^Card de/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Exportar card' })).not.toBeInTheDocument()
+    semEstrelas()
+    await screen.findByText('Nenhuma partida confirmada.')
+  } finally {
+    jogador.is_admin = false
+  }
 })
 
 test('foto que falha ao carregar exporta o card com iniciais', async () => {
