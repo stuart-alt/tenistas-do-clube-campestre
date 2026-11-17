@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstalarBanner from './InstalarBanner'
-import { limparEventoInstalacao } from '../lib/instalacao'
+import { __reiniciarInstalacaoParaTestes } from '../lib/instalacao'
 
 const IPHONE =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
@@ -26,7 +26,7 @@ function mockMatchMedia(standalone: boolean) {
 beforeEach(() => {
   localStorage.clear()
   mockMatchMedia(false)
-  limparEventoInstalacao()
+  __reiniciarInstalacaoParaTestes()
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -178,5 +178,19 @@ test('prompt() que falha não gera rejeição não tratada', async () => {
   prompt.mockRejectedValue(new Error('falhou'))
   const { container } = render(<InstalarBanner />)
   await userEvent.click(screen.getByRole('button', { name: 'Instalar app' }))
+  expect(container).toBeEmptyDOMElement()
+})
+
+test('tentativa concluída em uma tela vale para o banner montado depois', async () => {
+  vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID)
+  dispararInstalacao()
+  const primeiro = render(<InstalarBanner />)
+  await userEvent.click(screen.getByRole('button', { name: 'Instalar app' }))
+  primeiro.unmount()
+  vi.useFakeTimers()
+  const { container } = render(<InstalarBanner />)
+  act(() => {
+    vi.advanceTimersByTime(4000)
+  })
   expect(container).toBeEmptyDOMElement()
 })

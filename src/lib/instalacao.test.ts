@@ -1,4 +1,4 @@
-import { aoMudarEventoInstalacao, limparEventoInstalacao, obterEventoInstalacao } from './instalacao'
+import { aoMudarEventoInstalacao, __reiniciarInstalacaoParaTestes, obterEventoInstalacao } from './instalacao'
 
 function disparar(nome: string) {
   const ev = new Event(nome, { cancelable: true })
@@ -6,7 +6,7 @@ function disparar(nome: string) {
   return ev
 }
 
-afterEach(() => limparEventoInstalacao())
+afterEach(() => __reiniciarInstalacaoParaTestes())
 
 test('guarda o beforeinstallprompt e chama preventDefault', () => {
   expect(obterEventoInstalacao()).toBeNull()

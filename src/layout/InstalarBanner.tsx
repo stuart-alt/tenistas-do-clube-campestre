@@ -2,7 +2,8 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { detectarPlataforma, estaInstalado } from '../lib/plataforma'
 import {
   aoMudarEventoInstalacao,
-  limparEventoInstalacao,
+  concluirInstalacao,
+  instalacaoConcluida,
   obterEventoInstalacao,
 } from '../lib/instalacao'
 
@@ -19,16 +20,10 @@ function jaDispensado(): boolean {
 export default function InstalarBanner() {
   const [dispensado, setDispensado] = useState(jaDispensado)
   const [esperou, setEsperou] = useState(false)
-  const [concluido, setConcluido] = useState(false)
+  const concluido = useSyncExternalStore(aoMudarEventoInstalacao, instalacaoConcluida)
   const evento = useSyncExternalStore(aoMudarEventoInstalacao, obterEventoInstalacao)
   const plataforma = detectarPlataforma(navigator.userAgent, navigator.maxTouchPoints)
   const safariIos = !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(navigator.userAgent)
-
-  useEffect(() => {
-    const aoInstalar = () => setConcluido(true)
-    window.addEventListener('appinstalled', aoInstalar)
-    return () => window.removeEventListener('appinstalled', aoInstalar)
-  }, [])
 
   useEffect(() => {
     if (concluido || plataforma !== 'android' || evento) return
@@ -57,8 +52,7 @@ export default function InstalarBanner() {
       // prompt() recusado: nada a fazer, o aviso some nesta visita
     } finally {
       // o evento só vale uma vez; esconde o aviso nesta visita (sem gravar em localStorage)
-      setConcluido(true)
-      limparEventoInstalacao()
+      concluirInstalacao()
     }
   }
 
