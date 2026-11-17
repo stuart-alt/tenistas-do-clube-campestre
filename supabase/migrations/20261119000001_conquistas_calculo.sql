@@ -102,7 +102,7 @@ as $$
       join public.partida_jogadores o on o.partida_id = m.id and o.lado = m.lado and o.jogador_id <> p_jogador
       where m.modalidade = 'duplas')::int
     union all select 'anfitriao', null, (
-      select count(*) from public.salas s
+      select count(distinct s.partida_id) from public.salas s
       join public.partidas pa on pa.id = s.partida_id
       where s.criador = p_jogador
         and pa.status = 'confirmada'
@@ -150,9 +150,12 @@ as $$
   dias as (
     select distinct (pa.data_jogo + make_interval(months => jan.meses))::date as dia
     from public.partidas pa
-    join public.partida_jogadores pj on pj.partida_id = pa.id and pj.jogador_id = p_jogador
     cross join jan
-    where pa.status = 'confirmada'
+    where (exists (select 1 from public.partida_jogadores pj
+                   where pj.partida_id = pa.id and pj.jogador_id = p_jogador)
+           or exists (select 1 from public.salas s
+                      where s.partida_id = pa.id and s.criador = p_jogador))
+      and pa.status = 'confirmada'
       and pa.data_jogo <= p_hoje
       and (pa.data_jogo + make_interval(months => jan.meses))::date > p_hoje
   ),

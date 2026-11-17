@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(45);
 
 create temp table u (k text primary key, id uuid);
 grant all on u to authenticated;
@@ -24,7 +24,7 @@ create function pg_temp.limpar() returns void language sql as $$ delete from sal
 insert into u select k, tests.criar_usuario(lower(k) || '@x.com', k)
 from unnest(array['P', 'R', 'E1', 'E2', 'E3', 'E4', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7',
                   'N', 'N2', 'M', 'M2', 'Z1', 'Z2', 'Z3', 'Z4', 'H', 'H2', 'Q', 'Q2', 'G', 'G2',
-                  'T1', 'T2', 'T3', 'T4', 'V1', 'V2', 'V3', 'V4', 'W', 'W2', 'W3']) k;
+                  'T1', 'T2', 'T3', 'T4', 'V1', 'V2', 'V3', 'V4', 'W', 'W2', 'W3', 'AD', 'IN', 'IN2', 'C1', 'X1', 'X2']) k;
 insert into u values ('ADM', tests.criar_usuario('admin@x.com', 'Admin', true));
 
 create temp table w as select date_trunc('week', (hoje() - 60)::timestamp)::date as seg;
@@ -96,8 +96,6 @@ select pg_temp.p(pg_temp.seg() + 7 * k + 2, 'G', 'G2') from unnest(array[0, 1, 3
 select is(pg_temp.v('G', 'sequencia'), 3, 'sequencia: buraco no meio, vale a maior serie');
 
 -- sequencia_atual e progresso (usam P, que tem 10 partidas)
-select is(pg_temp.v('ADM', 'partidas'), 0, 'admin: valor 0');
-
 select tests.logar_como(pg_temp.id('P'));
 select throws_ok(format('select * from progresso_conquistas(%L)', pg_temp.id('R')), 'SEM_PERMISSAO', 'progresso de outro jogador');
 select is((select proximo_limite from progresso_conquistas(pg_temp.id('P')) where conquista = 'partidas'), 25, 'progresso: proximo limite 25');
@@ -118,9 +116,19 @@ select tests.logar_como(pg_temp.id('W2'));
 select is((select semanas from sequencia_atual(pg_temp.id('W2'))), 1, 'sequencia_atual: jogou hoje, 1 semana');
 select tests.deslogar();
 
--- admin: 13 linhas, todas nível 0
-select is((select count(*)::int from calcular_conquistas(pg_temp.id('ADM'), hoje())), 13, 'admin: uma linha por conquista');
-select is((select count(*)::int from calcular_conquistas(pg_temp.id('ADM'), hoje()) where nivel > 0), 0, 'admin: todas nivel 0');
+-- admin e inativo: jogaram (e lideram o ranking) antes de perder o status; todas as linhas com nível 0
+select pg_temp.limpar();
+select pg_temp.p(hoje() - 3, 'AD', 'IN2');
+select pg_temp.p(hoje() - 2, 'IN', 'IN2');
+select pg_temp.p(hoje() - 1, 'IN', 'IN2');
+select is(pg_temp.n('AD', 'partidas'), 1, 'antes de virar admin: tem medalha de partidas');
+select is(pg_temp.n('IN', 'partidas'), 1, 'antes de ficar inativo: tem medalha de partidas');
+update profiles set is_admin = true where id = pg_temp.id('AD');
+update profiles set ativo = false where id = pg_temp.id('IN');
+select is((select count(*)::int from calcular_conquistas(pg_temp.id('AD'), hoje())), 13, 'admin: uma linha por conquista');
+select is((select count(*)::int from calcular_conquistas(pg_temp.id('AD'), hoje()) where nivel > 0 or valor > 0), 0, 'admin com partidas: todas nivel 0');
+select is((select count(*)::int from calcular_conquistas(pg_temp.id('IN'), hoje()) where nivel > 0 or valor > 0), 0, 'inativo com partidas: todas nivel 0');
+select is((select count(*)::int from calcular_conquistas(pg_temp.id('ADM'), hoje()) where nivel > 0), 0, 'admin sem partidas: todas nivel 0');
 
 -- pódio e nº 1: T1 > T2 > T3 > T4 (uma partida por semana)
 select pg_temp.limpar();
@@ -151,6 +159,15 @@ select is((select valida_ate from validade_conquista(pg_temp.id('P'), 'partidas'
   (hoje() - 170 + make_interval(months => 6))::date - 1, 'validade: valida_ate quando a mais antiga sai');
 select is((select expira_em from validade_conquista(pg_temp.id('P'), 'partidas')),
   (hoje() - 1 + make_interval(months => 6))::date - 1, 'validade: expira_em quando a ultima sai');
+
+-- anfitrião: expira_em considera a partida da sala mesmo que o criador não tenha jogado
+select pg_temp.limpar();
+select pg_temp.p(hoje() - 10, 'X1', 'X2');
+insert into salas (criador, modalidade, data_hora, status, partida_id)
+select pg_temp.id('C1'), 'simples', now(), 'confirmada', id from partidas;
+select is(pg_temp.n('C1', 'anfitriao'), 1, 'anfitriao: criador que nao jogou tem a medalha');
+select is((select expira_em from validade_conquista(pg_temp.id('C1'), 'anfitriao')),
+  (hoje() - 10 + make_interval(months => 6))::date - 1, 'anfitriao: expira_em pela partida da sala');
 
 select * from finish();
 rollback;
