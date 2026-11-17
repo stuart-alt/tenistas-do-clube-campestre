@@ -1,7 +1,7 @@
 import { traduzirErro } from './erros'
 
 const CODIGOS = [
-  'ADMIN_NAO_JOGA',
+  'ADMIN_NAO_JOGA', 'MENSAGEM_INVALIDA', 'MENSAGEM_NAO_ENCONTRADA',
   'DATA_INVALIDA', 'JA_NA_SALA', 'JOGADORES_INVALIDOS', 'JOGADOR_NAO_ENCONTRADO',
   'NAO_PARTICIPANTE', 'PARTIDA_NAO_ENCONTRADA', 'PLACAR_EMPATADO', 'POSICAO_INVALIDA',
   'REGRA_INVALIDA', 'SALA_FECHADA', 'SALA_NAO_ENCONTRADA', 'SEM_PERMISSAO', 'SETS_INVALIDOS',
@@ -50,4 +50,9 @@ test('traduz violação do check de celular', () => {
     traduzirErro({ message: 'new row for relation "profiles" violates check constraint "profiles_telefone_celular_br"' }),
   ).toBe('Informe um celular com DDD, ex.: (11) 98765-4321')
   expect(traduzirErro({ message: 'ADMIN_NAO_JOGA' })).toBe('Contas de administrador não participam de jogos.')
+})
+
+test('traduz erros de mensagens ao administrador', () => {
+  expect(traduzirErro({ message: 'MENSAGEM_INVALIDA' })).toBe('Escreva uma mensagem de até 2000 caracteres.')
+  expect(traduzirErro({ message: 'MENSAGEM_NAO_ENCONTRADA' })).toBe('Mensagem não encontrada.')
 })

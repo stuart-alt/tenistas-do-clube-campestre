@@ -1,11 +1,19 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { formatarDiaHora, totalVagas, type SalaLista } from './tipos'
 
+function rotuloStatus(s: SalaLista) {
+  if (s.status === 'confirmada') return 'Confirmada'
+  const falta = Math.max(totalVagas(s.modalidade) - (s.vagas ?? []).length, 0)
+  return `Aguardando jogadores (${falta === 1 ? 'falta 1 vaga' : `faltam ${falta} vagas`})`
+}
+
 export default function SalasPage() {
   const { perfil } = useAuth()
+  const [filtro, setFiltro] = useState<'todas' | 'minhas'>('todas')
   const { data, isLoading, error } = useQuery({
     queryKey: ['salas'],
     queryFn: async () => {
@@ -16,7 +24,10 @@ export default function SalasPage() {
   })
 
   const grupos = new Map<string, SalaLista[]>()
-  for (const s of data ?? []) {
+  const visiveis = (data ?? []).filter(
+    (s) => filtro === 'todas' || (s.vagas ?? []).some((v) => v.jogador_id === perfil?.id),
+  )
+  for (const s of visiveis) {
     const { dia } = formatarDiaHora(s.data_hora)
     grupos.set(dia, [...(grupos.get(dia) ?? []), s])
   }
@@ -31,9 +42,24 @@ export default function SalasPage() {
           </Link>
         )}
       </div>
+      <div className="flex gap-2">
+        {(['todas', 'minhas'] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            aria-pressed={filtro === f}
+            onClick={() => setFiltro(f)}
+            className={`rounded px-3 py-1.5 text-sm font-semibold ${filtro === f ? 'bg-green-800 text-white' : 'border border-gray-300'}`}
+          >
+            {f === 'todas' ? 'Todas' : 'Minhas'}
+          </button>
+        ))}
+      </div>
       {isLoading && <p>Carregando...</p>}
       {error && <p role="alert">Não foi possível carregar as salas.</p>}
-      {!isLoading && !error && grupos.size === 0 && <p className="text-gray-600">Nenhuma sala aberta.</p>}
+      {!isLoading && !error && grupos.size === 0 && (
+        <p className="text-gray-600">{filtro === 'minhas' ? 'Você não está em nenhuma sala.' : 'Nenhuma sala aberta.'}</p>
+      )}
       {[...grupos].map(([dia, salas]) => (
         <section key={dia} className="space-y-2">
           <h3 className="font-bold capitalize">{dia}</h3>
@@ -45,7 +71,7 @@ export default function SalasPage() {
               </div>
               {s.recado && <p className="text-sm text-gray-700">{s.recado}</p>}
               <p className="text-sm text-gray-600">
-                {(s.vagas ?? []).length}/{totalVagas(s.modalidade)} · {s.status === 'confirmada' ? 'Confirmada' : 'Aberta'}
+                {(s.vagas ?? []).length}/{totalVagas(s.modalidade)} · {rotuloStatus(s)}
               </p>
             </Link>
           ))}

@@ -75,9 +75,9 @@ select is(pg_temp.nots('B', 'sala_cancelada') + pg_temp.nots('C', 'sala_cancelad
 select ok(not pg_temp.na_lista('d'), 'cancelada some da lista');
 
 -- Janela de 3 dias
-insert into salas (criador, modalidade, data_hora) values
-  (pg_temp.id('A'), 'simples', now() - interval '4 days'),
-  (pg_temp.id('A'), 'simples', now() - interval '2 days');
+insert into salas (criador, modalidade, data_hora, status) values
+  (pg_temp.id('A'), 'simples', now() - interval '4 days', 'confirmada'),
+  (pg_temp.id('A'), 'simples', now() - interval '2 days', 'confirmada');
 select is((select count(*)::int from salas_lista where data_hora < now() - interval '3 days'), 0,
   'sala de 4 dias atrás fora da lista');
 select is((select count(*)::int from salas_lista where data_hora between now() - interval '3 days' and now()), 1,

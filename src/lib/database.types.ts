@@ -49,6 +49,44 @@ isOneToOne: false
       referencedColumns: ["jogador_id"]
     }
                   ]
+                },"mensagens_admin": {
+                  Row: {
+                    "autor": string,"created_at": string,"id": string,"respondido_em": string | null,"respondido_por": string | null,"resposta": string | null,"texto": string,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "autor": string,"created_at"?: string,"id"?: string,"respondido_em"?: string | null,"respondido_por"?: string | null,"resposta"?: string | null,"texto": string,"tipo": string
+                  }
+                  Update: {
+                    "autor"?: string,"created_at"?: string,"id"?: string,"respondido_em"?: string | null,"respondido_por"?: string | null,"resposta"?: string | null,"texto"?: string,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mensagens_admin_autor_fkey"
+      columns: ["autor"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mensagens_admin_autor_fkey"
+      columns: ["autor"]
+isOneToOne: false
+      referencedRelation: "ranking"
+      referencedColumns: ["jogador_id"]
+    },{
+      foreignKeyName: "mensagens_admin_respondido_por_fkey"
+      columns: ["respondido_por"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mensagens_admin_respondido_por_fkey"
+      columns: ["respondido_por"]
+isOneToOne: false
+      referencedRelation: "ranking"
+      referencedColumns: ["jogador_id"]
+    }
+                  ]
                 },"notificacoes": {
                   Row: {
                     "created_at": string,"id": string,"lida": boolean,"link": string | null,"texto": string,"tipo": string,"usuario_id": string
@@ -380,8 +418,14 @@ isOneToOne: false
 "definir_ativo":
 { Args: { "p_ativo": boolean,"p_jogador": string }; Returns: undefined
                            },
+"encerrar_salas_incompletas":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "entrar_sala":
 { Args: { "p_posicao": number,"p_sala": string }; Returns: undefined
+                           },
+"enviar_mensagem_admin":
+{ Args: { "p_texto": string,"p_tipo": string }; Returns: string
                            },
 "hoje":
 { Args: Record<PropertyKey, never>; Returns: string
@@ -408,6 +452,9 @@ isOneToOne: false
                            },
 "registrar_partida":
 { Args: { "p_data_jogo": string,"p_lado1": (string)[],"p_lado2": (string)[],"p_modalidade": string,"p_sala_id"?: string,"p_sets": Json }; Returns: string
+                           },
+"responder_mensagem_admin":
+{ Args: { "p_id": string,"p_resposta": string }; Returns: undefined
                            },
 "sair_sala":
 { Args: { "p_sala": string }; Returns: undefined

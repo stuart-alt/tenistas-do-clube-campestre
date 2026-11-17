@@ -141,6 +141,11 @@ export default function EditarPerfilPage() {
       >
         Sair
       </button>
+      {!perfil.is_admin && (
+        <Link to="/contato" className="block text-center text-sm text-green-800 underline">
+          Fale com o administrador
+        </Link>
+      )}
     </form>
   )
 }

@@ -15,9 +15,10 @@ vi.mock('../lib/supabase', () => ({
     }),
   },
 }))
+let admin = false
 vi.mock('../auth/AuthProvider', () => ({
   useAuth: () => ({
-    perfil: { id: 'eu-123', nome: 'Ana', telefone: '11987654321', data_nascimento: '1990-05-20', disponibilidade: [] },
+    perfil: { id: 'eu-123', is_admin: admin, nome: 'Ana', telefone: '11987654321', data_nascimento: '1990-05-20', disponibilidade: [] },
     recarregarPerfil: async () => {},
   }),
 }))
@@ -31,6 +32,7 @@ function montar() {
 }
 
 beforeEach(() => {
+  admin = false
   update.mockReset()
   eq.mockReset()
   eq.mockResolvedValue({ error: null })
@@ -58,4 +60,15 @@ test('telefone válido formatado é salvo normalizado', async () => {
   await userEvent.type(campo, '+55 (21) 98765-4321')
   await userEvent.click(screen.getByRole('button', { name: 'Salvar' }))
   expect(update).toHaveBeenCalledWith(expect.objectContaining({ telefone: '21987654321' }))
+})
+
+test('jogador vê link Fale com o administrador', () => {
+  montar()
+  expect(screen.getByRole('link', { name: 'Fale com o administrador' })).toHaveAttribute('href', '/contato')
+})
+
+test('administrador não vê link Fale com o administrador', () => {
+  admin = true
+  montar()
+  expect(screen.queryByRole('link', { name: 'Fale com o administrador' })).toBeNull()
 })

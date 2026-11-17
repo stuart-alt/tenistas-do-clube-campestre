@@ -9,6 +9,8 @@ const MENSAGENS: Record<string, string> = {
   NAO_PARTICIPANTE: 'Você não participa desta partida.',
   PARTIDA_NAO_ENCONTRADA: 'Partida não encontrada.',
   PLACAR_EMPATADO: 'A partida não pode terminar empatada em sets.',
+  MENSAGEM_INVALIDA: 'Escreva uma mensagem de até 2000 caracteres.',
+  MENSAGEM_NAO_ENCONTRADA: 'Mensagem não encontrada.',
   POSICAO_INVALIDA: 'Posição inválida.',
   REGRA_INVALIDA: 'Valor de regra inválido.',
   SALA_FECHADA: 'Esta sala está fechada.',

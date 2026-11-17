@@ -4,8 +4,9 @@ import { supabase } from '../lib/supabase'
 import RegrasForm from './RegrasForm'
 import Contestacoes from './Contestacoes'
 import JogadoresAdmin from './JogadoresAdmin'
+import MensagensAdmin from './MensagensAdmin'
 
-const ABAS = ['Regras', 'Partidas', 'Jogadores'] as const
+const ABAS = ['Regras', 'Partidas', 'Jogadores', 'Mensagens'] as const
 
 function Regras() {
   const { data, isPending, error } = useQuery({
@@ -50,6 +51,7 @@ export default function AdminPage() {
       {aba === 'Regras' && <Regras />}
       {aba === 'Partidas' && <Contestacoes />}
       {aba === 'Jogadores' && <JogadoresAdmin />}
+      {aba === 'Mensagens' && <MensagensAdmin />}
     </div>
   )
 }
