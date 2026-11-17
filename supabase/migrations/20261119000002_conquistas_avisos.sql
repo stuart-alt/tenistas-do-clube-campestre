@@ -7,40 +7,43 @@ alter table public.notificacoes add constraint notificacoes_tipo_check check (ti
   'aviso_novo', 'contestacao_admin', 'mensagem_admin', 'mensagem_respondida',
   'conquista_ganha', 'conquista_vencendo', 'conquistas_estreia'));
 
--- Desempenho: o cálculo das medalhas (fora pódio/nº 1) passa a ser feito para várias datas de
--- referência numa só consulta. calcular_conquistas e validades_conquistas mantêm o resultado
--- da 20261119000001, mas usam esse núcleo em vez de chamar calcular_conquistas uma vez por data
--- (e avaliar a view ranking a cada chamada).
-create function public.calcular_conquistas_refs(p_jogador uuid, p_refs date[], p_hoje date default public.hoje())
-returns table (ref date, conquista text, valor int, nivel int)
+-- Desempenho: o cálculo das medalhas (fora pódio/nº 1) passa a ser feito para vários pares
+-- (jogador, data de referência) numa só consulta. calcular_conquistas e validades_conquistas mantêm o
+-- resultado da 20261119000001, mas usam esse núcleo em vez de chamar calcular_conquistas uma vez por
+-- data (e avaliar a view ranking a cada chamada); avaliar_conquistas_todos calcula todos de uma vez.
+-- Pares (p_jogadores[i], p_refs[i]): valor e nível de cada medalha olhando as partidas na janela em p_refs[i].
+create function public.calcular_conquistas_pares(p_jogadores uuid[], p_refs date[], p_hoje date default public.hoje())
+returns table (jogador_id uuid, ref date, conquista text, valor int, nivel int)
 language plpgsql stable security definer set search_path = public
 as $$
 #variable_conflict use_column
 begin
   return query
-  with ok as (
-    select 1 from public.profiles where id = p_jogador and ativo and not is_admin
-  ),
-  jan as (
+  with jan as (
     select janela_meses as meses from public.regras where modalidade = 'simples'
   ),
-  refs as (
-    select distinct r as ref from unnest(p_refs) r
+  pares as (
+    select distinct t.j, t.r as ref from unnest(p_jogadores, p_refs) t (j, r)
+  ),
+  ok as materialized (
+    select p.id as j from public.profiles p
+    where p.id = any (p_jogadores) and p.ativo and not p.is_admin
   ),
   minhas as materialized (
-    select pj.partida_id, pj.lado from public.partida_jogadores pj
-    where pj.jogador_id = p_jogador and exists (select 1 from ok)
+    select pj.jogador_id as j, pj.partida_id, pj.lado
+    from public.partida_jogadores pj
+    where pj.jogador_id in (select ok.j from ok)
   ),
-  -- partidas confirmadas do jogador até hoje, com o que cada uma vale e a data em que sai da janela
+  -- partidas confirmadas de cada jogador até hoje, com o que cada uma vale e a data em que sai da janela
   base as materialized (
-    select pa.data_jogo,
+    select mi.j, pa.data_jogo,
            pa.data_jogo + make_interval(months => (select meses from jan)) as fim,
            coalesce(pp.vitoria, false) as vitoria,
            coalesce(pp.bonus, 0) as bonus,
            array(select o.jogador_id from public.partida_jogadores o
                  where o.partida_id = pa.id and o.lado <> mi.lado) as adversarios,
            array(select o.jogador_id from public.partida_jogadores o
-                 where o.partida_id = pa.id and o.lado = mi.lado and o.jogador_id <> p_jogador
+                 where o.partida_id = pa.id and o.lado = mi.lado and o.jogador_id <> mi.j
                    and pa.modalidade = 'duplas') as parceiros,
            coalesce(pp.vitoria, false) and exists (
              select 1 from public.partida_sets s
@@ -54,70 +57,92 @@ begin
     from minhas mi
     -- offset 0: busca cada partida pela chave, sem depender das estatísticas do planejador
     cross join lateral (select * from public.partidas pa where pa.id = mi.partida_id offset 0) pa
-    left join public.pontos_partida pp on pp.partida_id = pa.id and pp.jogador_id = p_jogador
+    left join public.pontos_partida pp on pp.partida_id = pa.id and pp.jogador_id = mi.j
     where pa.status = 'confirmada'
       and pa.data_jogo <= p_hoje
   ),
   -- salas criadas pelo jogador que viraram partida confirmada
   salas_ok as materialized (
-    select distinct s.partida_id,
+    select distinct s.criador as j, s.partida_id,
            pa.data_jogo + make_interval(months => (select meses from jan)) as fim
     from public.salas s
     join public.partidas pa on pa.id = s.partida_id
-    where s.criador = p_jogador
+    where s.criador in (select ok.j from ok)
       and pa.status = 'confirmada'
       and pa.data_jogo <= p_hoje
-      and exists (select 1 from ok)
   ),
-  m as materialized (
-    select r.ref, b.* from refs r join base b on b.fim > r.ref
+  -- Uma semana, um adversário ou um parceiro está na janela em ref se a partida mais recente com ele
+  -- (maior fim) ainda está: agrega antes por jogador e depois cruza com as datas
+  wk as (
+    select j, date_trunc('week', data_jogo::timestamp)::date as semana, max(fim) as fim
+    from base group by j, semana
+  ),
+  opp as (
+    select b.j, a, max(b.fim) as fim from base b, unnest(b.adversarios) a group by b.j, a
+  ),
+  parc as (
+    select b.j, a, max(b.fim) as fim from base b, unnest(b.parceiros) a group by b.j, a
   ),
   semanas as (
-    select distinct ref, date_trunc('week', data_jogo::timestamp)::date as semana from m
+    select pr.j, pr.ref, w.semana from pares pr join wk w on w.j = pr.j and w.fim > pr.ref
   ),
   series as (
-    select ref, count(*) as tam
-    from (select ref, semana - (row_number() over (partition by ref order by semana))::int * 7 as grupo
+    select j, ref, count(*) as tam
+    from (select j, ref, semana - (row_number() over (partition by j, ref order by semana))::int * 7 as grupo
           from semanas) s
-    group by ref, grupo
+    group by j, ref, grupo
   ),
-  seq as (select ref, max(tam)::int as valor from series group by ref),
+  seq as (select j, ref, max(tam)::int as valor from series group by j, ref),
   cont as (
-    select ref, count(*)::int as partidas,
-           (count(*) filter (where vitoria))::int as vitorias,
-           (count(*) filter (where vitoria and bonus > 0))::int as zebra,
-           (count(*) filter (where virada))::int as viradas,
-           sum(pneus)::int as pneus
-    from m group by ref
+    select pr.j, pr.ref, count(*)::int as partidas,
+           (count(*) filter (where b.vitoria))::int as vitorias,
+           (count(*) filter (where b.vitoria and b.bonus > 0))::int as zebra,
+           (count(*) filter (where b.virada))::int as viradas,
+           sum(b.pneus)::int as pneus
+    from pares pr join base b on b.j = pr.j and b.fim > pr.ref
+    group by pr.j, pr.ref
   ),
   adv as (
-    select m.ref, count(distinct a)::int as valor from m, unnest(m.adversarios) a group by m.ref
+    select pr.j, pr.ref, count(*)::int as valor
+    from pares pr join opp o on o.j = pr.j and o.fim > pr.ref group by pr.j, pr.ref
   ),
   par as (
-    select m.ref, count(distinct a)::int as valor from m, unnest(m.parceiros) a group by m.ref
+    select pr.j, pr.ref, count(*)::int as valor
+    from pares pr join parc o on o.j = pr.j and o.fim > pr.ref group by pr.j, pr.ref
   ),
   anf as (
-    select r.ref, count(*)::int as valor from refs r join salas_ok s on s.fim > r.ref group by r.ref
+    select pr.j, pr.ref, count(*)::int as valor
+    from pares pr join salas_ok s on s.j = pr.j and s.fim > pr.ref
+    group by pr.j, pr.ref
   ),
   v as (
-    select r.ref, x.chave, coalesce(x.valor, 0) as valor
-    from refs r
-    left join seq on seq.ref = r.ref
-    left join cont on cont.ref = r.ref
-    left join adv on adv.ref = r.ref
-    left join par on par.ref = r.ref
-    left join anf on anf.ref = r.ref
+    select pr.j, pr.ref, x.chave, coalesce(x.valor, 0) as valor
+    from pares pr
+    left join seq on seq.j = pr.j and seq.ref = pr.ref
+    left join cont on cont.j = pr.j and cont.ref = pr.ref
+    left join adv on adv.j = pr.j and adv.ref = pr.ref
+    left join par on par.j = pr.j and par.ref = pr.ref
+    left join anf on anf.j = pr.j and anf.ref = pr.ref
     cross join lateral (values
       ('sequencia', seq.valor), ('partidas', cont.partidas), ('vitorias', cont.vitorias),
       ('adversarios', adv.valor), ('parceiros', par.valor), ('anfitriao', anf.valor),
       ('zebra', cont.zebra), ('virada', cont.viradas), ('pneu', cont.pneus)) x (chave, valor)
   )
-  select v.ref, cc.chave, v.valor,
+  select v.j, v.ref, cc.chave, v.valor,
          (select count(*) from unnest(cc.limites) l where l <= v.valor)::int
   from v
   join public.conquistas_catalogo cc on cc.chave = v.chave
-  order by v.ref, cc.ordem;
+  order by v.j, v.ref, cc.ordem;
 end;
+$$;
+
+-- Um jogador, várias datas de referência
+create function public.calcular_conquistas_refs(p_jogador uuid, p_refs date[], p_hoje date default public.hoje())
+returns table (ref date, conquista text, valor int, nivel int)
+language sql stable security definer set search_path = public
+as $$
+  select c.ref, c.conquista, c.valor, c.nivel
+  from public.calcular_conquistas_pares(array_fill(p_jogador, array[cardinality(p_refs)]), p_refs, p_hoje) c
 $$;
 
 -- calcular_conquistas: mesmo resultado da 20261119000001, usando o núcleo acima
@@ -149,44 +174,71 @@ as $$
   order by cc.ordem, v.modal
 $$;
 
--- Estado atual de cada medalha (fora pódio/nº 1): valor e nível hoje e, com nível, as datas em que
--- cairia de nível (valida_ate) e sumiria (expira_em) sem partidas novas. Uma consulta só para todas as datas.
-create function public.estado_conquistas(p_jogador uuid, p_hoje date default public.hoje())
-returns table (conquista text, valor int, nivel int, valida_ate date, expira_em date)
+-- Estado atual de cada medalha (fora pódio/nº 1) de vários jogadores: valor e nível hoje e, com nível,
+-- as datas em que cairia de nível (valida_ate) e sumiria (expira_em) sem partidas novas.
+-- As datas candidatas são as saídas da janela das partidas (e salas) de cada jogador.
+create function public.estado_conquistas_varios(p_jogadores uuid[], p_hoje date default public.hoje())
+returns table (jogador_id uuid, conquista text, valor int, nivel int, valida_ate date, expira_em date)
 language plpgsql stable security definer set search_path = public
 as $$
 #variable_conflict use_column
+declare
+  v_js uuid[];
+  v_refs date[];
 begin
-  return query
   with jan as (
     select janela_meses as meses from public.regras where modalidade = 'simples'
   ),
   dias as (
-    select distinct (pa.data_jogo + make_interval(months => jan.meses))::date as dia
-    from (select pj.partida_id from public.partida_jogadores pj where pj.jogador_id = p_jogador
+    select distinct x.j, (pa.data_jogo + make_interval(months => jan.meses))::date as dia
+    from (select pj.jogador_id as j, pj.partida_id from public.partida_jogadores pj
+          where pj.jogador_id = any (p_jogadores)
           union
-          select s.partida_id from public.salas s where s.criador = p_jogador) x
+          select s.criador, s.partida_id from public.salas s where s.criador = any (p_jogadores)) x
     cross join lateral (select * from public.partidas pa where pa.id = x.partida_id offset 0) pa
     cross join jan
     where pa.status = 'confirmada'
       and pa.data_jogo <= p_hoje
       and (pa.data_jogo + make_interval(months => jan.meses))::date > p_hoje
   ),
-  calc as materialized (
-    select * from public.calcular_conquistas_refs(
-      p_jogador, array(select p_hoje union select dia from dias), p_hoje)
-  ),
-  fut as (
-    select c.ref as dia, c.conquista, c.nivel from calc c where c.ref > p_hoje
+  pares as (
+    select j, p_hoje as ref from unnest(p_jogadores) j
+    union
+    select j, dia from dias
   )
-  select b.conquista, b.valor, b.nivel,
-         case when b.nivel > 0 then
-           (select min(f.dia) from fut f where f.conquista = b.conquista and f.nivel < b.nivel) - 1 end,
-         case when b.nivel > 0 then
-           (select min(f.dia) from fut f where f.conquista = b.conquista and f.nivel = 0) - 1 end
-  from calc b
-  where b.ref = p_hoje;
+  select array_agg(pares.j), array_agg(pares.ref) into v_js, v_refs from pares;
+
+  return query
+  with calc as materialized (
+    select * from public.calcular_conquistas_pares(coalesce(v_js, '{}'), coalesce(v_refs, '{}'), p_hoje)
+  ),
+  atual as (
+    select * from calc c where c.ref = p_hoje
+  ),
+  -- 1ª data futura em que o nível fica menor / chega a 0
+  lim as (
+    select b.jogador_id, b.conquista,
+           min(f.ref) filter (where f.nivel < b.nivel) as queda,
+           min(f.ref) filter (where f.nivel = 0) as zero
+    from atual b
+    join calc f on f.jogador_id = b.jogador_id and f.conquista = b.conquista and f.ref > p_hoje
+    where b.nivel > 0
+    group by b.jogador_id, b.conquista
+  )
+  select b.jogador_id, b.conquista, b.valor, b.nivel,
+         case when b.nivel > 0 then l.queda - 1 end,
+         case when b.nivel > 0 then l.zero - 1 end
+  from atual b
+  left join lim l on l.jogador_id = b.jogador_id and l.conquista = b.conquista;
 end;
+$$;
+
+create function public.estado_conquistas(p_jogador uuid, p_hoje date default public.hoje())
+returns table (conquista text, valor int, nivel int, valida_ate date, expira_em date)
+language sql stable security definer set search_path = public
+as $$
+  select e.conquista, e.valor, e.nivel, e.valida_ate, e.expira_em
+  from public.estado_conquistas_varios(array[p_jogador], p_hoje) e
 $$;
 
 -- validades_conquistas: mesmo resultado da 20261119000001, a partir de estado_conquistas
@@ -207,10 +259,12 @@ as $$
 $$;
 
 -- Recalcula as medalhas do jogador e atualiza o retrato, avisando quando ganha/sobe de nível
--- e 10 dias antes de a medalha sumir. p_top3 / p_numero1: modalidades em que o jogador está hoje
--- no top 3 / em 1º na view ranking (avaliar_conquistas_todos lê a view uma vez só para todos).
+-- e 10 dias antes de a medalha sumir. Recebe já calculados (avaliar_conquistas_todos calcula todos
+-- os jogadores numa consulta e lê a view ranking uma vez só):
+--   p_estado: linhas de estado_conquistas(p_jogador, p_hoje) em jsonb;
+--   p_top3 / p_numero1: modalidades em que o jogador está hoje no top 3 / em 1º na view ranking.
 create function public.avaliar_conquistas_posicoes(
-  p_jogador uuid, p_notificar boolean, p_hoje date, p_top3 text[], p_numero1 text[]
+  p_jogador uuid, p_notificar boolean, p_hoje date, p_estado jsonb, p_top3 text[], p_numero1 text[]
 ) returns void
 language plpgsql security definer set search_path = public
 as $$
@@ -230,7 +284,7 @@ begin
     -- com as posições no ranking recebidas
     with calc as materialized (
       select e.conquista, null::text as modalidade, e.valor, e.nivel, e.valida_ate, e.expira_em
-      from estado_conquistas(p_jogador, p_hoje) e
+      from jsonb_to_recordset(p_estado) e (conquista text, valor int, nivel int, valida_ate date, expira_em date)
       union all
       select 'podio', mo, (mo = any (p_top3))::int, (mo = any (p_top3))::int, null::date, null::date
       from unnest(array['simples', 'duplas']) mo
@@ -322,15 +376,18 @@ returns void
 language plpgsql security definer set search_path = public
 as $$
 declare
+  v_estado jsonb;
   v_top3 text[];
   v_numero1 text[];
 begin
+  select coalesce(jsonb_agg(to_jsonb(e)), '[]') into v_estado from estado_conquistas(p_jogador, p_hoje) e;
+
   select coalesce(array_agg(modalidade) filter (where posicao <= 3), '{}'),
          coalesce(array_agg(modalidade) filter (where posicao = 1), '{}')
     into v_top3, v_numero1
   from ranking where jogador_id = p_jogador;
 
-  perform avaliar_conquistas_posicoes(p_jogador, p_notificar, p_hoje, v_top3, v_numero1);
+  perform avaliar_conquistas_posicoes(p_jogador, p_notificar, p_hoje, v_estado, v_top3, v_numero1);
 end;
 $$;
 
@@ -341,26 +398,41 @@ language plpgsql security definer set search_path = public
 as $$
 declare
   v record;
+  v_ids uuid[];
 begin
+  -- Ordem dos locks: recalcular_ranking:<modalidade> antes de avaliar_conquistas_todos. Como este lock
+  -- fica preso até o fim da transação, quem recalcula mais de uma modalidade na mesma transação precisa
+  -- pegar os locks das modalidades antes, em ordem fixa (ver auto_confirmar_partidas), senão há deadlock.
   perform pg_advisory_xact_lock(hashtext('avaliar_conquistas_todos'));
+
+  select coalesce(array_agg(p.id order by p.id), '{}') into v_ids
+  from profiles p
+  where (not p.is_admin
+         and (exists (select 1 from partida_jogadores pj join partidas pa on pa.id = pj.partida_id
+                      where pj.jogador_id = p.id and pa.status = 'confirmada')
+              or exists (select 1 from salas s join partidas pa on pa.id = s.partida_id
+                         where s.criador = p.id and pa.status = 'confirmada')))
+     or exists (select 1 from conquistas_jogador cj where cj.jogador_id = p.id);
 
   for v in
     with rk as materialized (
       select jogador_id, modalidade, posicao from ranking
+    ),
+    est as materialized (
+      select e.jogador_id,
+             jsonb_agg(jsonb_build_object('conquista', e.conquista, 'valor', e.valor, 'nivel', e.nivel,
+                                          'valida_ate', e.valida_ate, 'expira_em', e.expira_em)) as estado
+      from estado_conquistas_varios(v_ids, public.hoje()) e
+      group by e.jogador_id
     )
-    select p.id,
-           array(select rk.modalidade from rk where rk.jogador_id = p.id and rk.posicao <= 3) as top3,
-           array(select rk.modalidade from rk where rk.jogador_id = p.id and rk.posicao = 1) as numero1
-    from profiles p
-    where (not p.is_admin
-           and (exists (select 1 from partida_jogadores pj join partidas pa on pa.id = pj.partida_id
-                        where pj.jogador_id = p.id and pa.status = 'confirmada')
-                or exists (select 1 from salas s join partidas pa on pa.id = s.partida_id
-                           where s.criador = p.id and pa.status = 'confirmada')))
-       or exists (select 1 from conquistas_jogador cj where cj.jogador_id = p.id)
-    order by p.id
+    select j.id,
+           coalesce((select est.estado from est where est.jogador_id = j.id), '[]') as estado,
+           array(select rk.modalidade from rk where rk.jogador_id = j.id and rk.posicao <= 3) as top3,
+           array(select rk.modalidade from rk where rk.jogador_id = j.id and rk.posicao = 1) as numero1
+    from unnest(v_ids) j (id)
+    order by j.id
   loop
-    perform avaliar_conquistas_posicoes(v.id, p_notificar, public.hoje(), v.top3, v.numero1);
+    perform avaliar_conquistas_posicoes(v.id, p_notificar, public.hoje(), v.estado, v.top3, v.numero1);
   end loop;
 end;
 $$;
@@ -484,18 +556,58 @@ end;
 $$;
 
 revoke execute on function public.recalcular_ranking(text) from public, anon, authenticated;
+
+-- auto_confirmar_partidas: igual à 20261116000004, pegando antes do laço os locks de todas as
+-- modalidades afetadas, em ordem fixa (alfabética). Sem isso: esta transação segura simples + avaliar_conquistas_todos
+-- e espera duplas, enquanto uma confirmação de duplas segura duplas e espera avaliar_conquistas_todos.
+create or replace function public.auto_confirmar_partidas() returns int
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_ids uuid[];
+  v_mod text;
+  v_id uuid;
+begin
+  -- Seleção e atualização no mesmo comando: só vira confirmada quem ainda está pendente
+  with c as (
+    update partidas set status = 'confirmada', confirmado_em = now()
+    where status = 'pendente' and created_at < now() - interval '48 hours'
+    returning id, modalidade
+  )
+  select coalesce(array_agg(id), '{}') into v_ids from c;
+
+  for v_mod in select distinct modalidade from partidas where id = any (v_ids) order by modalidade loop
+    perform pg_advisory_xact_lock(hashtext('recalcular_ranking:' || v_mod));
+  end loop;
+
+  for v_mod in select distinct modalidade from partidas where id = any (v_ids) loop
+    perform recalcular_ranking(v_mod);
+  end loop;
+
+  foreach v_id in array v_ids loop
+    perform notificar_jogadores_partida(v_id, null, 'partida_confirmada',
+      'Partida confirmada automaticamente após 48 horas.', '/ranking');
+  end loop;
+
+  return cardinality(v_ids);
+end;
+$$;
+
+revoke execute on function public.auto_confirmar_partidas() from public, anon, authenticated;
 revoke execute on function public.conquistas_unidade(int, text) from public, anon, authenticated;
+revoke execute on function public.calcular_conquistas_pares(uuid[], date[], date) from public, anon, authenticated;
 revoke execute on function public.calcular_conquistas_refs(uuid, date[], date) from public, anon, authenticated;
+revoke execute on function public.estado_conquistas_varios(uuid[], date) from public, anon, authenticated;
 revoke execute on function public.estado_conquistas(uuid, date) from public, anon, authenticated;
-revoke execute on function public.avaliar_conquistas_posicoes(uuid, boolean, date, text[], text[]) from public, anon, authenticated;
+revoke execute on function public.avaliar_conquistas_posicoes(uuid, boolean, date, jsonb, text[], text[]) from public, anon, authenticated;
 revoke execute on function public.avaliar_conquistas(uuid, boolean, date) from public, anon, authenticated;
 revoke execute on function public.avaliar_conquistas_todos(boolean) from public, anon, authenticated;
 revoke execute on function public.estrear_conquistas() from public, anon, authenticated;
 
 -- Chamadas por jogador, muitas vezes seguidas: reaproveita o plano em vez de replanejar a cada chamada
-alter function public.calcular_conquistas_refs(uuid, date[], date) set plan_cache_mode = force_generic_plan;
-alter function public.estado_conquistas(uuid, date) set plan_cache_mode = force_generic_plan;
-alter function public.avaliar_conquistas_posicoes(uuid, boolean, date, text[], text[]) set plan_cache_mode = force_generic_plan;
+alter function public.calcular_conquistas_pares(uuid[], date[], date) set plan_cache_mode = force_generic_plan;
+alter function public.estado_conquistas_varios(uuid[], date) set plan_cache_mode = force_generic_plan;
+alter function public.avaliar_conquistas_posicoes(uuid, boolean, date, jsonb, text[], text[]) set plan_cache_mode = force_generic_plan;
 
 -- Cron diário: 09:00 de São Paulo (12:00 UTC) — faz as medalhas vencerem e manda o aviso de "vai vencer"
 select cron.schedule('conquistas-diarias', '0 12 * * *', 'select public.avaliar_conquistas_todos()');

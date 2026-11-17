@@ -479,7 +479,7 @@ isOneToOne: false
 { Args: { "p_hoje"?: string,"p_jogador": string,"p_notificar"?: boolean }; Returns: undefined
                            },
 "avaliar_conquistas_posicoes":
-{ Args: { "p_hoje": string,"p_jogador": string,"p_notificar": boolean,"p_numero1": (string)[],"p_top3": (string)[] }; Returns: undefined
+{ Args: { "p_estado": Json,"p_hoje": string,"p_jogador": string,"p_notificar": boolean,"p_numero1": (string)[],"p_top3": (string)[] }; Returns: undefined
                            },
 "avaliar_conquistas_todos":
 { Args: { "p_notificar"?: boolean }; Returns: undefined
@@ -487,6 +487,11 @@ isOneToOne: false
 "calcular_conquistas":
 { Args: { "p_hoje"?: string,"p_jogador": string,"p_ref": string }; Returns: {
               "conquista": string,"modalidade": string,"nivel": number,"valor": number
+            }[]
+                           },
+"calcular_conquistas_pares":
+{ Args: { "p_hoje"?: string,"p_jogadores": (string)[],"p_refs": (string)[] }; Returns: {
+              "conquista": string,"jogador_id": string,"nivel": number,"ref": string,"valor": number
             }[]
                            },
 "calcular_conquistas_refs":
@@ -524,6 +529,11 @@ isOneToOne: false
 "estado_conquistas":
 { Args: { "p_hoje"?: string,"p_jogador": string }; Returns: {
               "conquista": string,"expira_em": string,"nivel": number,"valida_ate": string,"valor": number
+            }[]
+                           },
+"estado_conquistas_varios":
+{ Args: { "p_hoje"?: string,"p_jogadores": (string)[] }; Returns: {
+              "conquista": string,"expira_em": string,"jogador_id": string,"nivel": number,"valida_ate": string,"valor": number
             }[]
                            },
 "estrear_conquistas":
