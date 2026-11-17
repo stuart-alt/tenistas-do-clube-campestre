@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -12,7 +12,7 @@ const exportar = vi.hoisted(() => ({
 vi.mock('./exportarCard', () => exportar)
 
 const jogador = {
-  id: 'eu-1', nome: 'Ana Lima', categoria: 'B', genero: 'feminino', foto_url: null, telefone: '11987654321',
+  id: 'eu-1', nome: 'Ana Lima', categoria: 'B', genero: 'feminino', foto_url: null as string | null, telefone: '11987654321',
   data_nascimento: '1990-05-20', disponibilidade: [],
   forehand: 3, backhand: 3, saque: 3, voleio: 3, velocidade: 3, resistencia: 3,
 }
@@ -45,6 +45,11 @@ function montar() {
   )
 }
 
+afterEach(async () => {
+  await screen.findByText('Nenhuma partida confirmada.')
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Gerando...' })).toBeNull())
+})
+
 beforeEach(() => {
   eu = { id: 'eu-1', is_admin: false }
   Object.values(exportar).forEach((f) => f.mockReset())
@@ -57,7 +62,7 @@ test('perfil próprio mostra o card e exporta', async () => {
   montar()
   const botao = await screen.findByRole('button', { name: 'Exportar card' })
   await userEvent.click(botao)
-  await vi.waitFor(() => expect(exportar.compartilharOuBaixar).toHaveBeenCalledWith(expect.any(Blob), 'card-ana.png'))
+  await waitFor(() => expect(exportar.compartilharOuBaixar).toHaveBeenCalledWith(expect.any(Blob), 'card-ana.png'))
   expect(exportar.svgParaPng).toHaveBeenCalled()
 })
 
@@ -79,4 +84,23 @@ test('admin nao ve o card', async () => {
   montar()
   await screen.findByText('Ana Lima')
   expect(screen.queryByRole('button', { name: 'Exportar card' })).not.toBeInTheDocument()
+})
+
+test('foto que falha ao carregar exporta o card com iniciais', async () => {
+  jogador.foto_url = 'https://exemplo.test/foto.jpg'
+  exportar.fotoComoDataUrl.mockResolvedValue(undefined)
+  try {
+    montar()
+    const botao = await screen.findByRole('button', { name: 'Exportar card' })
+    await waitFor(() => expect(botao).toBeEnabled())
+    await userEvent.click(botao)
+    await waitFor(() => expect(exportar.svgParaPng).toHaveBeenCalled())
+    const svg = exportar.svgParaPng.mock.calls[0][0] as SVGSVGElement
+    expect(svg.querySelector('image')).toBeNull()
+    expect(svg.textContent).toContain('AL')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Exportar card' })).toBeEnabled())
+    await screen.findByText('Nenhuma partida confirmada.')
+  } finally {
+    jogador.foto_url = null
+  }
 })

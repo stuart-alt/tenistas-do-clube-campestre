@@ -1,23 +1,33 @@
 export async function svgParaPng(svg: SVGSVGElement, largura = 1500): Promise<Blob> {
   const altura = Math.round((largura * 7) / 5)
-  const xml = new XMLSerializer().serializeToString(svg)
-  const img = new Image()
-  img.width = largura
-  img.height = altura
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve()
-    img.onerror = () => reject(new Error('Falha ao carregar o SVG'))
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`
-  })
-  const canvas = document.createElement('canvas')
-  canvas.width = largura
-  canvas.height = altura
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Canvas indisponível')
-  ctx.drawImage(img, 0, 0, largura, altura)
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Falha ao gerar o PNG'))), 'image/png')
-  })
+  const clone = svg.cloneNode(true) as SVGSVGElement
+  clone.setAttribute('width', String(largura))
+  clone.setAttribute('height', String(altura))
+  clone.removeAttribute('class')
+  const xml = new XMLSerializer().serializeToString(clone)
+  const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }))
+  try {
+    const img = new Image()
+    img.width = largura
+    img.height = altura
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('Falha ao carregar o SVG'))
+      img.src = url
+    })
+    await img.decode?.().catch(() => undefined)
+    const canvas = document.createElement('canvas')
+    canvas.width = largura
+    canvas.height = altura
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas indisponível')
+    ctx.drawImage(img, 0, 0, largura, altura)
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Falha ao gerar o PNG'))), 'image/png')
+    })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
 }
 
 export async function fotoComoDataUrl(url: string): Promise<string | undefined> {

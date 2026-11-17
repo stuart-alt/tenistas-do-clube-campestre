@@ -145,18 +145,21 @@ function MeuCard({
   const svgRef = useRef<SVGSVGElement>(null)
   const [ocupado, setOcupado] = useState(false)
   const [erro, setErro] = useState(false)
+  // Foto embutida (data URL) para o PNG sair com ela; se falhar, o card mostra as iniciais.
+  const { data: fotoData, isPending: carregandoFoto } = useQuery({
+    queryKey: ['card-foto', perfil.foto_url],
+    queryFn: async () => (perfil.foto_url ? ((await fotoComoDataUrl(perfil.foto_url)) ?? null) : null),
+    enabled: !!perfil.foto_url,
+    staleTime: Infinity,
+  })
+  const aguardandoFoto = !!perfil.foto_url && carregandoFoto
 
   async function exportar() {
     if (!svgRef.current) return
     setOcupado(true)
     setErro(false)
     try {
-      // A foto é embutida como data URL no clone, senão o PNG sairia sem ela.
-      const foto = perfil.foto_url ? await fotoComoDataUrl(perfil.foto_url) : undefined
-      const clone = svgRef.current.cloneNode(true) as SVGSVGElement
-      if (foto) clone.querySelector('image')?.setAttribute('href', foto)
-      else clone.querySelector('image')?.remove()
-      const png = await svgParaPng(clone)
+      const png = await svgParaPng(svgRef.current)
       const primeiro = perfil.nome
         .trim()
         .split(/\s+/)[0]
@@ -175,12 +178,18 @@ function MeuCard({
     <section className="space-y-2">
       <h3 className="font-semibold">Meu card</h3>
       <div className="mx-auto w-full max-w-[320px]">
-        <CardJogador ref={svgRef} perfil={perfil} ranking={ranking} />
+        <CardJogador
+          ref={svgRef}
+          perfil={perfil}
+          ranking={ranking}
+          fotoDataUrl={fotoData ?? undefined}
+          semFoto={!!perfil.foto_url && !carregandoFoto && !fotoData}
+        />
       </div>
       <button
         type="button"
         onClick={exportar}
-        disabled={ocupado}
+        disabled={ocupado || aguardandoFoto}
         className="rounded bg-green-800 px-4 py-2 font-semibold text-white disabled:opacity-60"
       >
         {ocupado ? 'Gerando...' : 'Exportar card'}

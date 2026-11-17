@@ -24,13 +24,13 @@ function nomeCurto(nome: string) {
   return nome.length > 22 ? `${nome.slice(0, 21).trimEnd()}…` : nome
 }
 
-const CardJogador = forwardRef<SVGSVGElement, { perfil: PerfilCard; ranking: LinhaRanking[]; fotoDataUrl?: string }>(
-  function CardJogador({ perfil, ranking, fotoDataUrl }, ref) {
+const CardJogador = forwardRef<SVGSVGElement, { perfil: PerfilCard; ranking: LinhaRanking[]; fotoDataUrl?: string; semFoto?: boolean }>(
+  function CardJogador({ perfil, ranking, fotoDataUrl, semFoto }, ref) {
     const uid = useId().replace(/:/g, '')
     const cat = (['A', 'B', 'C', 'D'].includes(perfil.categoria ?? '') ? perfil.categoria : 'D') as Categoria
     const cor = corDaCategoria(cat)
     const notas = notasDoJogador(perfil)
-    const foto = fotoDataUrl ?? perfil.foto_url
+    const foto = semFoto ? null : (fotoDataUrl ?? perfil.foto_url)
     // Retângulo arredondado com um canto superior esquerdo chanfrado.
     const forma = 'M 70 0 H 680 A 70 70 0 0 1 750 70 V 980 A 70 70 0 0 1 680 1050 H 70 A 70 70 0 0 1 0 980 V 150 Z'
     const iniciais = perfil.nome
@@ -59,7 +59,7 @@ const CardJogador = forwardRef<SVGSVGElement, { perfil: PerfilCard; ranking: Lin
             <path d={forma} />
           </clipPath>
           <clipPath id={`f${uid}`}>
-            <rect x="175" y="200" width="400" height="400" rx="36" />
+            <rect x="185" y="260" width="380" height="380" rx="36" />
           </clipPath>
         </defs>
         <path d={forma} fill={`url(#g${uid})`} />
@@ -79,33 +79,33 @@ const CardJogador = forwardRef<SVGSVGElement, { perfil: PerfilCard; ranking: Lin
           Tenistas do Campestre
         </text>
 
-        <rect x="175" y="200" width="400" height="400" rx="36" fill={cor.destaque} fillOpacity="0.5" />
+        <rect x="185" y="260" width="380" height="380" rx="36" fill={cor.destaque} fillOpacity="0.5" />
         {foto ? (
           <image
             href={foto}
-            x="175"
-            y="200"
-            width="400"
-            height="400"
+            x="185"
+            y="260"
+            width="380"
+            height="380"
             preserveAspectRatio="xMidYMid slice"
             clipPath={`url(#f${uid})`}
           />
         ) : (
-          <text x="375" y="400" fontSize="190" fontWeight="800" fill={cor.texto} textAnchor="middle" dominantBaseline="middle">
+          <text x="375" y="450" fontSize="190" fontWeight="800" fill={cor.texto} textAnchor="middle" dominantBaseline="middle">
             {iniciais}
           </text>
         )}
-        <rect x="175" y="200" width="400" height="400" rx="36" fill="none" stroke={cor.texto} strokeOpacity="0.5" strokeWidth="6" />
+        <rect x="185" y="260" width="380" height="380" rx="36" fill="none" stroke={cor.texto} strokeOpacity="0.5" strokeWidth="6" />
 
-        <text x="375" y="680" fontSize="58" fontWeight="800" fill={cor.texto} textAnchor="middle">
+        <text x="375" y="715" fontSize={Math.min(58, Math.floor(560 / (Math.max(perfil.nome.length, 1) * 0.62)))} fontWeight="800" fill={cor.texto} textAnchor="middle">
           {nomeCurto(perfil.nome)}
         </text>
-        <line x1="120" y1="705" x2="630" y2="705" stroke={cor.texto} strokeOpacity="0.5" strokeWidth="3" />
+        <line x1="120" y1="740" x2="630" y2="740" stroke={cor.texto} strokeOpacity="0.5" strokeWidth="3" />
 
         {FILAS.map((fila, r) =>
           fila.map((k, c) => {
             const x = 175 + c * 200
-            const y = 770 + r * 100
+            const y = 795 + r * 100
             return (
               <g key={k}>
                 <text x={x} y={y} fontSize="32" fontWeight="700" fill={cor.texto} fillOpacity="0.8" textAnchor="middle">
