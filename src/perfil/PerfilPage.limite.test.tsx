@@ -59,7 +59,8 @@ test('últimas partidas: marca a que não contou para o ranking', async () => {
     </QueryClientProvider>,
   )
   expect(
-    await screen.findByText('Não contou para o ranking (fora das 3 melhores da semana)'),
+    // folga para a suíte completa em paralelo (o perfil renderiza card e conquistas)
+    await screen.findByText('Não contou para o ranking (fora das 3 melhores da semana)', undefined, { timeout: 5000 }),
   ).toBeInTheDocument()
   expect(screen.getAllByText(/Não contou para o ranking/)).toHaveLength(1)
 })
